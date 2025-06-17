@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulo - Authentication</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: monospace, 'Courier New', Courier;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2) 10px, rgba(0, 0, 0, 0.3) 10px, rgba(0, 0, 0, 0.3) 20px);
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+    
+    .auth-screen {
+      width: 90%;
+      max-width: 650px;
+      background-color: rgba(12, 13, 21, 0.95);
+      padding: 2rem;
+      position: relative;
+      border: 1px solid var(--primary-color);
+      box-shadow: 0 0 30px rgba(77, 232, 252, 0.3);
+    }
+    
+    .status-display {
+      text-align: center;
+      padding: 2rem;
+    }
+    
+    .status-text {
+      margin-bottom: 1.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: var(--text-color);
+    }
+    
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 1rem 0;
+    }
+    
+    .terminal-text {
+      position: relative;
+      color: var(--primary-color);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      overflow: hidden;
+      white-space: nowrap;
+      animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+      margin: 0;
+      text-shadow: 0 0 5px rgba(77, 232, 252, 0.5);
+    }
+    
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+    
+    @keyframes blink-caret {
+      from, to { border-right-color: transparent }
+      50% { border-right-color: var(--primary-color); }
+    }
+    
+    .error-message {
+      color: var(--danger-color);
+      margin-top: 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      display: none;
+      text-shadow: 0 0 5px rgba(255, 85, 79, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="container scan-lines">
+    <div class="auth-screen">
+      <div class="status-display">
+        <h1 class="access-title">ACCESS POINT</h1>
+      
+      <div class="form">
+        <div class="status-text">VERIFYING IDENTITY</div>
+        
+        <div class="loading-indicator">
+          <p class="terminal-text" id="terminal-text">Establishing secure connection...</p>
+        </div>
+        
+        <div class="error-message" id="error-message">
+          Authentication failed. Please try again.
+        </div>
+        
+        <button class="button" id="redirect-button" style="display: none;">
+          <span class="button-text">CONTINUE</span>
+          <span class="button-glow"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scan lines applied via class instead of element -->
+  
+  <script type="module" src="../../auth/callback/index.ts"></script>
+</body>
+</html>

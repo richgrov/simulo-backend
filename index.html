@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="/src/styles.css" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Simulo</title>
+        <script type="module" src="/src/main.ts" defer></script>
+    </head>
+
+    <body>
+        <main style="width: 100vw; min-height: 100vh; margin: 0; padding: 0">
+            <div id="app-container">
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 1rem;
+                        border-bottom: 1px solid var(--border-color);
+                        background-color: var(--secondary-bg);
+                    "
+                >
+                    <div style="display: flex; align-items: center; gap: 1rem">
+                        <svg width="50" height="50">
+                            <polygon
+                                points="0,0 50,0 0,50"
+                                style="fill: var(--primary-color)"
+                            />
+                        </svg>
+                        <h1 style="margin: 0">Simulo</h1>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 1rem">
+                        <span
+                            id="user-email"
+                            style="color: var(--secondary-text)"
+                            >Guest</span
+                        >
+                        <button
+                            id="sign-out-button"
+                            class="button button-danger"
+                        >
+                            DISCONNECT
+                        </button>
+                    </div>
+                </div>
+
+                <h1>test</h1>
+            </div>
+
+            <div
+                id="auth-overlay"
+                class="full-cover"
+                style="
+                    z-index: 100;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                "
+            >
+                <div
+                    style="
+                        aspect-ratio: 1/1;
+                        width: 30%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: stretch;
+                        justify-content: center;
+                        background-color: rgba(0, 0, 0, 0.2);
+                        padding: 6rem;
+                        position: relative;
+                    "
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="-1 -1 102 102"
+                        width="100%"
+                        style="
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            stroke: white;
+                            fill: transparent;
+                            stroke-width: 1;
+                            pointer-events: none;
+                        "
+                    >
+                        <path
+                            d="M10 0 L100 0 L100 90 L90 100 L0 100 L0 10 Z"
+                            vector-effect="non-scaling-stroke"
+                        />
+                    </svg>
+
+                    <h1 style="color: var(--primary-color)">SIMULO CREATOR</h1>
+
+                    <label style="display: block; color: var(--primary-color)">
+                        EMAIL
+                        <input
+                            type="email"
+                            id="email-input"
+                            placeholder="email@example.com"
+                            required
+                        />
+                    </label>
+
+                    <button type="submit" id="login-submit">
+                        SEND ACCESS LINK
+                    </button>
+
+                    <div id="message-container" style="min-height: 3rem"></div>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
