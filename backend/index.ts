@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { createClient, type User } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
+import { JobQueue } from "./jobQueue";
 
 const ai = new OpenAI();
 const supabase = createClient(
@@ -73,6 +74,8 @@ impl GameObject {
 \`\`\`
 `;
 
+const compileQueue = new JobQueue();
+
 const corsOptions = { origin: process.env.CORS };
 
 const server = express();
@@ -121,7 +124,15 @@ server.post("/agent", async (req, res) => {
   console.log("OpenAI said:", text);
 
   const code = text.replace(/^```rust/, "").replace(/```$/, "");
-  res.send("use crate::simulo::*;\n" + code);
+  const fullCode = "use crate::simulo::*;\n" + code;
+
+  try {
+    const processed = await compileQueue.enqueue(fullCode);
+    res.send(processed);
+  } catch (err) {
+    console.error("Job failed", err);
+    res.status(500).send("job failed");
+  }
 });
 
 server.listen(3000, () => console.log("Online"));
