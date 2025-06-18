@@ -4,7 +4,9 @@ import "./styles.css";
 document.addEventListener("DOMContentLoaded", async () => {
   const appContainer = document.getElementById("app-container")!;
   const authOverlay = document.getElementById("auth-overlay")!;
-  const submitButton = document.getElementById("login-submit")!;
+  const submitButton = document.getElementById(
+    "login-submit",
+  )! as HTMLButtonElement;
   const emailInput = document.getElementById("email-input") as HTMLInputElement;
   const messageContainer = document.getElementById("message-container")!;
   const signOutButton = document.getElementById("sign-out-button")!;
@@ -45,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  submitButton?.addEventListener("click", async (event) => {
+  submitButton.addEventListener("click", async (event) => {
     event.preventDefault();
 
     const email = emailInput?.value;
