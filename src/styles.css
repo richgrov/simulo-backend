@@ -97,3 +97,19 @@ textarea {
 ::placeholder {
     color: var(--secondary);
 }
+
+.message {
+    padding: 0.75rem;
+    text-align: center;
+    margin-top: 1rem;
+    color: lime;
+    background-color: rgba(0, 100, 0, 0.8);
+    border-right: 3px solid lime;
+    letter-spacing: 1px;
+}
+
+.message.negative {
+    color: red;
+    background-color: rgba(100, 0, 0, 0.8);
+    border-right: 3px solid red;
+}

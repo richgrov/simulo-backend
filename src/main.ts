@@ -4,6 +4,20 @@ import "./styles.css";
 
 canvas.init();
 
+function showMessage(
+  element: HTMLElement,
+  message: string,
+  type: "success" | "error",
+) {
+  if (type === "error") {
+    element.classList.add("negative");
+  } else {
+    element.classList.remove("negative");
+  }
+  element.classList.add("message");
+  element.innerText = message;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const appContainer = document.getElementById("app-container")!;
   const authOverlay = document.getElementById("auth-overlay")!;
@@ -14,26 +28,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const messageContainer = document.getElementById("message-container")!;
   const signOutButton = document.getElementById("sign-out-button")!;
 
-  function showMessage(message: string, type: "success" | "error") {
-    if (!messageContainer) return;
-    const style =
-      type === "success"
-        ? "padding: 0.75rem; text-align: center; margin-top: 1rem; color: var(--primary-color); border-left: 3px solid var(--primary-color);"
-        : "padding: 0.75rem; text-align: center; margin-top: 1rem; color: var(--danger-color); border-left: 3px solid var(--danger-color);";
-    messageContainer.innerHTML = `<div style="${style}">${message}</div>`;
-    if (type === "success") {
-      setTimeout(() => (messageContainer.innerHTML = ""), 8000);
-    }
-  }
-
   function showAuthOverlay() {
     appContainer!.style.filter = "blur(5px)";
-    if (authOverlay) authOverlay.style.display = "flex";
+    authOverlay.style.display = "flex";
   }
 
   function hideAuthOverlay() {
-    if (authOverlay) authOverlay.style.display = "none";
     appContainer!.style.removeProperty("filter");
+    authOverlay.style.display = "none";
   }
 
   signOutButton?.addEventListener("click", async () => {
@@ -48,9 +50,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   submitButton.addEventListener("click", async (event) => {
     event.preventDefault();
 
-    const email = emailInput?.value;
+    const email = emailInput.value;
     if (!email) {
-      showMessage("Email required", "error");
+      showMessage(messageContainer, "Email required", "error");
       return;
     }
 
@@ -64,13 +66,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       if (error) {
-        showMessage(`Error: ${error.message}`, "error");
+        showMessage(messageContainer, `Error: ${error.message}`, "error");
       } else {
-        showMessage("Check your email for the login link", "success");
-        if (emailInput) emailInput.value = "";
+        showMessage(
+          messageContainer,
+          "Check your email for the login link",
+          "success",
+        );
+        emailInput.value = "";
       }
     } catch (error: any) {
-      showMessage(`Error: ${error.message}`, "error");
+      showMessage(messageContainer, `Error: ${error.message}`, "error");
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = "SEND ACCESS LINK";
@@ -100,3 +106,50 @@ document.addEventListener("DOMContentLoaded", async () => {
     showAuthOverlay();
   }
 });
+
+const promptInput = document.querySelector(
+  "#prompt-input",
+)! as HTMLTextAreaElement;
+const promptMessage = document.querySelector("#prompt-message")! as HTMLElement;
+
+document
+  .querySelector("#prompt-submit")!
+  .addEventListener("click", async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error(error);
+      showMessage(promptMessage, `Error: ${error.message}`, "error");
+      return;
+    }
+
+    if (!data.session) {
+      console.error("No session present");
+      showMessage(promptMessage, "Internal error.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch(import.meta.env.VITE_BACKEND + "/agent", {
+        method: "POST",
+        headers: {
+          Authorization: `${data.session.access_token}`,
+        },
+        body: promptInput.value,
+      });
+
+      const output = await response.text();
+
+      if (!response.ok) {
+        showMessage(promptMessage, `API ERROR: ${output}`, "error");
+      } else {
+        showMessage(promptMessage, output, "success");
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      showMessage(
+        promptMessage,
+        `NETWORKING ERROR- VERIFY CONNECTION AND RETRY`,
+        "error",
+      );
+    }
+  });

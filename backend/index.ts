@@ -1,10 +1,14 @@
 import OpenAI from "openai";
+import { createClient, type User } from "@supabase/supabase-js";
+import express from "express";
+import cors from "cors";
 
 const ai = new OpenAI();
-const BAD_REQUEST = new Response("bad request", { status: 400 });
-const INTERNAL_SERVER_ERROR = new Response("internal server error", {
-  status: 500,
-});
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_API_KEY!,
+  {},
+);
 
 const AI_INSTRUCTIONS = `\
 You are an assistant that writes Rust code for creating interactive projection mapping experiences. \
@@ -60,37 +64,41 @@ impl GameObject {
 \`\`\`
 `;
 
-const server = Bun.serve({
-  routes: {
-    "/agent": {
-      POST: agent,
-    },
-  },
-  error: (error) => {
-    console.error(error);
-    return INTERNAL_SERVER_ERROR;
-  },
-});
+const corsOptions = { origin: process.env.CORS };
 
-async function textBody(
-  req: Bun.BunRequest,
-): Promise<[string, undefined] | [undefined, Response]> {
-  if (req.headers.get("Content-Type") !== "text/plain") {
-    return [undefined, BAD_REQUEST];
+const server = express();
+server.use(cors(corsOptions), express.text());
+
+async function authorize(req: express.Request): Promise<User | undefined> {
+  const auth = req.header("Authorization");
+  if (!auth) {
+    return undefined;
   }
 
-  const body = (await req.text()).trim();
-  if (!body) {
-    return [undefined, BAD_REQUEST];
+  const { data, error } = await supabase.auth.getUser(auth);
+  if (error) {
+    return undefined;
   }
 
-  return [body, undefined];
+  if (!data.user) {
+    return undefined;
+  }
+
+  return data.user;
 }
 
-async function agent(req: Bun.BunRequest<"/agent">) {
-  const [query, error] = await textBody(req);
-  if (error) {
-    return error;
+server.options("/agent", cors(corsOptions));
+server.post("/agent", async (req, res) => {
+  const query = (req.body as string).trim();
+  if (query.length < 1 || query.length > 1000) {
+    res.status(400).send("invalid query");
+    return;
+  }
+
+  const user = await authorize(req);
+  if (!user) {
+    res.status(401).send("unauthorized");
+    return;
   }
 
   const response = await ai.responses.create({
@@ -100,7 +108,11 @@ async function agent(req: Bun.BunRequest<"/agent">) {
     instructions: AI_INSTRUCTIONS,
   });
 
-  return new Response(response.output_text);
-}
+  const text = response.output_text;
+  console.log("OpenAI said:", text);
 
-console.log(`Running on http://${server.hostname}:${server.port}`);
+  const code = text.replace(/^```rust/, "").replace(/```$/, "");
+  res.send("use crate::simulo::*;\n" + code);
+});
+
+server.listen(3000, () => console.log("Online"));
