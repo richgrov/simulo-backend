@@ -28,7 +28,7 @@ export function init() {
   const gridSize = 50;
   const spacing = 4;
 
-  const dotGeometry = new THREE.SphereGeometry(0.2, 2, 2);
+  const dotGeometry = new THREE.SphereGeometry(0.2, 8, 8);
   const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const dotCount = gridSize * gridSize;
   const instancedDots = new THREE.InstancedMesh(
