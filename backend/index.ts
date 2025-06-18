@@ -18,14 +18,23 @@ Your response will not be visible to the user, so only return a rust code block.
 documentation for scripting:
 
 \`\`\`rust
-//! Simulo: the game engine of the real world
+//! Documentation for Simulo: the game engine of the real world. All APIs are available in the
+//! global namespace.
 //!
-//! This file documents API available in the \`crate::simulo\` module.
-//!
-//! An entry point must be declared like so:
+//! A struct \`Game\` must be declared with the following functions:
 //! \`\`\`rust
-//! pub fn start() {
+//! pub struct Game {
 //!     // ...
+//! }
+//!
+//! impl Game {
+//!     pub fn new() -> Self {
+//!         // ...
+//!     }
+//!
+//!     pub fn update(&mut self, delta: f32) {
+//!         // ...
+//!     }
 //! }
 //! \`\`\`
 //!
@@ -56,7 +65,7 @@ impl GameObject {
     }
 
     /// Deletes the object from the scene. If this object handle was cloned, all other instances are
-    /// also invalid. They may point to nothing, or a different object.
+    /// also invalid. They may now point to nothing, or a different object.
     pub fn delete(&self) {
         // stub
     }
