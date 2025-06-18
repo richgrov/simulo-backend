@@ -1,10 +1,10 @@
 :root {
     --primary-color: #4de8fc;
+    --secondary: #99aabb;
     --danger-color: #ff554f;
     --bg-color: #050507;
     --secondary-bg: #0c0d15;
     --border-color: #4054c8;
-    --text-color: #ffffff;
     --secondary-text: #bbc5ff;
     font-family: "ApexMk2", sans-serif;
     color: var(--text-color);
@@ -33,33 +33,42 @@
     right: 0;
 }
 
-input {
-    width: 100%;
-    font-family: monospace;
+.underlined {
+    font-family: "ApexMk2", monospace;
     font-size: 1rem;
-    background-color: rgba(8, 9, 15, 0.5);
-    border: 1px solid var(--primary-color);
-    box-sizing: border-box;
-    padding: 16px;
-    color: var(--text-color);
-    display: block;
+    border: none;
+    background-color: transparent;
+    color: var(--secondary);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--secondary);
 }
 
-button {
+.outlined {
+    font-family: "ApexMk2", monospace;
+    font-size: 1rem;
     background-color: transparent;
     border: 1px solid var(--primary-color);
     color: var(--primary-color);
-    font-family: "ApexMk2", monospace;
-    font-size: 1rem;
     padding: 16px;
     cursor: pointer;
     margin-top: 1rem;
+    box-sizing: border-box;
     width: 100%;
 }
 
-.button-danger {
-    border-color: var(--danger-color);
-    color: var(--danger-color);
+.vignette {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(0, 0, 0, 0) 50%,
+        rgba(0, 0, 0, 1) 90%,
+        rgba(0, 0, 0, 1) 100%
+    );
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
 }
 
 h1 {

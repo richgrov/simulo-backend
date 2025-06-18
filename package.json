@@ -12,7 +12,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-opener": "^2",
+    "@types/three": "^0.177.0",
+    "three": "^0.177.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

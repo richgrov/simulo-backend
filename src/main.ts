@@ -1,5 +1,8 @@
 import { supabase } from "./auth/supabase";
+import * as canvas from "./canvas";
 import "./styles.css";
+
+canvas.init();
 
 document.addEventListener("DOMContentLoaded", async () => {
   const appContainer = document.getElementById("app-container")!;
@@ -10,7 +13,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const emailInput = document.getElementById("email-input") as HTMLInputElement;
   const messageContainer = document.getElementById("message-container")!;
   const signOutButton = document.getElementById("sign-out-button")!;
-  const userEmail = document.getElementById("user-email")!;
 
   function showMessage(message: string, type: "success" | "error") {
     if (!messageContainer) return;
@@ -32,10 +34,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   function hideAuthOverlay() {
     if (authOverlay) authOverlay.style.display = "none";
     appContainer!.style.removeProperty("filter");
-  }
-
-  function updateUserInfo(user: any) {
-    if (userEmail) userEmail.textContent = user.email;
   }
 
   signOutButton?.addEventListener("click", async () => {
@@ -86,7 +84,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (user) {
       hideAuthOverlay();
-      updateUserInfo(user);
     } else {
       showAuthOverlay();
     }
@@ -94,7 +91,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
         hideAuthOverlay();
-        updateUserInfo(session.user);
       } else if (event === "SIGNED_OUT") {
         showAuthOverlay();
       }
