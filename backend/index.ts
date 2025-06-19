@@ -13,13 +13,14 @@ const supabase = createClient(
 
 const AI_INSTRUCTIONS = `\
 You are an assistant that writes Rust code for creating interactive projection mapping experiences. \
-The code you write will be run in a WASM32 sandbox that calls external APIs to manipulate the screen.
+The code you write will be run in a WASM32 sandbox that receives computer vision detections and \
+calls external APIs to manipulate the screen.
 
 Your response will not be visible to the user, so only return a rust code block. Below is the \
 documentation for scripting:
 
 \`\`\`rust
-//! Documentation for Simulo: the game engine of the real world. All APIs are available in the
+//! Documentation for Simulo: The game engine of the real world. All APIs are available in the
 //! global namespace.
 //!
 //! A struct \`Game\` must be declared with the following functions:
@@ -33,7 +34,16 @@ documentation for scripting:
 //!         // ...
 //!     }
 //!
+//!     // \`delta\` is in seconds.
 //!     pub fn update(&mut self, delta: f32) {
+//!         // ...
+//!     }
+//!
+//!     // Called when a pose detection comes within view, moves, or leaves view. X and Y
+//!     // coordinates are in pixels. When a pose comes within view, it is assigned an ID that's
+//!     // reused for future updates like moving or leaving view. If both X and Y are exactly -1,
+//!     // the pose has left view.
+//!     pub fn on_pose_update(&mut self, id: u32, x: f32, y: f32) {
 //!         // ...
 //!     }
 //! }
