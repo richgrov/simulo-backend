@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { createClient, type User } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
-import { JobQueue } from "./jobQueue";
+import { JobQueue, finishJob } from "./job-queue";
 
 const ai = new OpenAI();
 const supabase = createClient(
@@ -128,7 +128,12 @@ server.post("/agent", async (req, res) => {
 
   try {
     const processed = await compileQueue.enqueue(fullCode);
-    res.send(processed);
+    res.sendFile(processed.wasmPath, (err) => {
+      if (err) {
+        console.error("Failed to send file", err);
+      }
+      finishJob(processed);
+    });
   } catch (err) {
     console.error("Job failed", err);
     res.status(500).send("job failed");
