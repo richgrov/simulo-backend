@@ -33,10 +33,21 @@ pub struct GameObject(u32);
 
 #[allow(dead_code)]
 impl GameObject {
-    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel scale.
+    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel
+    /// scale, so you must likely want to rescale it to something bigger with `GameObject::set_scale()`.
     pub fn new(x: f32, y: f32) -> Self {
         let id = unsafe { simulo_create_object(x, y) };
         GameObject(id)
+    }
+
+    /// Returns the x-coordinate of the object's position in the viewport.
+    pub fn x(&self) -> f32 {
+        unsafe { simulo_get_object_x(self.0) }
+    }
+
+    /// Returns the y-coordinate of the object's position in the viewport.
+    pub fn y(&self) -> f32 {
+        unsafe { simulo_get_object_y(self.0) }
     }
 
     /// Sets the position of the object in the viewport.
@@ -66,5 +77,7 @@ unsafe extern "C" {
     fn simulo_create_object(x: f32, y: f32) -> u32;
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
     fn simulo_set_object_scale(id: u32, x: f32, y: f32);
+    fn simulo_get_object_x(id: u32) -> f32;
+    fn simulo_get_object_y(id: u32) -> f32;
     fn simulo_delete_object(id: u32);
 }

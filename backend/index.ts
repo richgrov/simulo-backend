@@ -60,8 +60,19 @@ documentation for scripting:
 pub struct GameObject(/* stub */);
 
 impl GameObject {
-    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel scale.
+    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel
+    /// scale, so you must likely want to rescale it to something bigger with \`GameObject::set_scale()\`.
     pub fn new(x: f32, y: f32) -> Self {
+        // stub
+    }
+
+    /// Returns the x-coordinate of the object's position in the viewport.
+    pub fn x(&self) -> f32 {
+        // stub
+    }
+
+    /// Returns the y-coordinate of the object's position in the viewport.
+    pub fn y(&self) -> f32 {
         // stub
     }
 
