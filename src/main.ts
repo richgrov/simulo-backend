@@ -137,12 +137,18 @@ document
         body: promptInput.value,
       });
 
-      const output = await response.text();
-
       if (!response.ok) {
-        showMessage(promptMessage, `API ERROR: ${output}`, "error");
+        const error = await response.text();
+        showMessage(promptMessage, `API ERROR: ${error}`, "error");
       } else {
-        showMessage(promptMessage, output, "success");
+        const output = await response.blob();
+        showMessage(promptMessage, "INITIALIZING DOWNLOAD", "success");
+        const url = URL.createObjectURL(output);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "program.wasm";
+        a.click();
+        URL.revokeObjectURL(url);
       }
     } catch (error) {
       console.error("Fetch error:", error);
