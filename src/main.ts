@@ -15,7 +15,14 @@ function showMessage(
     element.classList.remove("negative");
   }
   element.classList.add("message");
-  element.innerText = message;
+
+  let i = 0;
+  const interval = setInterval(() => {
+    element.innerText = message.substring(0, i++);
+    if (i > message.length) {
+      clearInterval(interval);
+    }
+  }, 15);
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
