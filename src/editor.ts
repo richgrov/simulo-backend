@@ -12,7 +12,10 @@ const editorControls = document.querySelector(
   "#editor-controls",
 )! as HTMLElement;
 
-function show() {
+let projectId: string;
+
+export function init(project: string) {
+  projectId = project;
   editorControls.style.removeProperty("display");
 }
 

@@ -1,5 +1,4 @@
 import { supabase } from "./auth/supabase";
-import { escape } from "./ui";
 import "./sign-in";
 import "./editor";
 import "./styles.css";
