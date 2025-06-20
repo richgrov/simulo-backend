@@ -1,5 +1,6 @@
 import { supabase } from "./auth/supabase";
 import { showMessage } from "./ui";
+import * as projectList from "./project-list";
 
 const appContainer = document.getElementById("app-container")!;
 const authOverlay = document.getElementById("auth-overlay")!;
@@ -58,6 +59,7 @@ submitButton.addEventListener("click", async (event) => {
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_IN" && session) {
     hideAuthOverlay();
+    projectList.init();
   } else if (event === "SIGNED_OUT") {
     showAuthOverlay();
   }
