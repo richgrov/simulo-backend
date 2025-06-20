@@ -40,7 +40,9 @@ document
     }
 
     try {
-      const response = await fetch(import.meta.env.VITE_BACKEND + "/agent", {
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND + `/project/${projectId}/agent`,
+        {
         method: "POST",
         headers: {
           Authorization: `${data.session.access_token}`,
