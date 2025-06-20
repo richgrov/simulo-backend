@@ -13,9 +13,9 @@
             <canvas
                 width="100"
                 height="100"
-                style="position: absolute; top: 0"
+                style="position: absolute; top: 0; z-index: -2"
             ></canvas>
-            <div class="vignette"></div>
+            <div class="vignette" style="z-index: -2"></div>
 
             <div
                 style="
@@ -26,27 +26,191 @@
                     margin: 16px 32px;
                 "
             >
-                <p style="display: inline">
-                    <span
-                        style="
-                            background-color: #444;
-                            color: white;
-                            padding: 8px;
-                            letter-spacing: 1px;
-                            display: inline-block;
-                        "
-                    >
-                        SIMULO CREATOR
-                    </span>
+                <p style="display: inline; float: left; margin: 0">
+                    <span class="highlight">SIMULO CREATOR</span>
                 </p>
 
-                <button
-                    id="sign-out-button"
-                    class="underlined"
-                    style="float: right"
+                <div style="float: right">
+                    <button class="underlined">SETTINGS</button>
+
+                    <button id="sign-out-button" class="underlined">
+                        LOGOUT
+                    </button>
+                </div>
+
+                <div
+                    style="
+                        clear: both;
+                        padding-top: 8px;
+                        width: 100%;
+                        display: grid;
+                        grid-template-columns: repeat(4, 1fr);
+                        grid-template-rows: auto;
+                        gap: 16px;
+                    "
                 >
-                    LOGOUT
-                </button>
+                    <div style="position: relative">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="-1 -1 102 42"
+                            width="100%"
+                            style="
+                                stroke: #c0c9cf;
+                                fill: rgba(0, 0, 0, 0.5);
+                                stroke-width: 1;
+                                position: absolute;
+                                top: 0;
+                                z-index: -1;
+                            "
+                        >
+                            <path
+                                d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+                                vector-effect="non-scaling-stroke"
+                            />
+                        </svg>
+                        <div style="padding: 0 24px">
+                            <h2 style="display: inline-block">Experiment</h2>
+                            <button
+                                style="
+                                    display: inline-block;
+                                    margin: 20px 0;
+                                    float: right;
+                                    font-size: 1.5rem;
+                                "
+                            >
+                                &vellip;
+                            </button>
+                        </div>
+                        <p
+                            style="
+                                color: gray;
+                                position: absolute;
+                                left: 24px;
+                                top: 36px;
+                            "
+                        >
+                            &#9679; NOT DEPLOYED
+                        </p>
+                        <button
+                            class="highlight"
+                            style="
+                                position: absolute;
+                                bottom: -80px;
+                                right: 30px;
+                            "
+                        >
+                            LAUNCH
+                        </button>
+                    </div>
+                    <div style="position: relative">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="-1 -1 102 42"
+                            width="100%"
+                            style="
+                                stroke: #c0c9cf;
+                                fill: rgba(0, 0, 0, 0.5);
+                                stroke-width: 1;
+                                position: absolute;
+                                top: 0;
+                                z-index: -1;
+                            "
+                        >
+                            <path
+                                d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+                                vector-effect="non-scaling-stroke"
+                            />
+                        </svg>
+                        <div style="padding: 0 24px">
+                            <h2 style="display: inline-block">Sound System</h2>
+                            <button
+                                style="
+                                    display: inline-block;
+                                    margin: 20px 0;
+                                    float: right;
+                                    font-size: 1.5rem;
+                                "
+                            >
+                                &vellip;
+                            </button>
+                        </div>
+                        <p
+                            style="
+                                color: lime;
+                                position: absolute;
+                                left: 24px;
+                                top: 36px;
+                            "
+                        >
+                            &#9679; OK
+                        </p>
+                        <button
+                            class="highlight"
+                            style="
+                                position: absolute;
+                                bottom: -80px;
+                                right: 30px;
+                            "
+                        >
+                            LAUNCH
+                        </button>
+                    </div>
+                    <div style="position: relative">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="-1 -1 102 42"
+                            width="100%"
+                            style="
+                                stroke: #c0c9cf;
+                                fill: rgba(0, 0, 0, 0.5);
+                                stroke-width: 1;
+                                position: absolute;
+                                top: 0;
+                                z-index: -1;
+                            "
+                        >
+                            <path
+                                d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+                                vector-effect="non-scaling-stroke"
+                            />
+                        </svg>
+                        <div style="padding: 0 24px">
+                            <h2 style="display: inline-block">
+                                Sidewalk Projector
+                            </h2>
+                            <button
+                                style="
+                                    display: inline-block;
+                                    margin: 20px 0;
+                                    float: right;
+                                    font-size: 1.5rem;
+                                "
+                            >
+                                &vellip;
+                            </button>
+                        </div>
+                        <p
+                            style="
+                                color: yellow;
+                                position: absolute;
+                                left: 24px;
+                                top: 36px;
+                            "
+                        >
+                            &#9679; WARNING
+                        </p>
+                        <button
+                            class="highlight"
+                            style="
+                                position: absolute;
+                                bottom: -80px;
+                                right: 30px;
+                            "
+                        >
+                            LAUNCH
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div
@@ -58,19 +222,8 @@
                     float: right;
                 "
             >
-                >
                 <p style="border-bottom: 4px solid #444">
-                    <span
-                        style="
-                            background-color: #444;
-                            color: white;
-                            padding: 6px;
-                            letter-spacing: 1px;
-                            display: inline-block;
-                        "
-                    >
-                        COMMAND CENTER
-                    </span>
+                    <span class="highlight">COMMAND CENTER</span>
                 </p>
 
                 <textarea
@@ -78,7 +231,9 @@
                     style="resize: none; width: 100%; height: 100px"
                     placeholder="Describe something, or ask a question..."
                 ></textarea>
-                <button id="prompt-submit" class="outlined">EXECUTE</button>
+                <button id="prompt-submit" class="outlined blue">
+                    EXECUTE
+                </button>
 
                 <div id="prompt-message"></div>
             </div>
@@ -141,7 +296,7 @@
                     />
                 </label>
 
-                <button type="submit" id="login-submit" class="outlined">
+                <button type="submit" id="login-submit" class="outlined blue">
                     SEND ACCESS LINK
                 </button>
 
