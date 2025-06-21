@@ -15,6 +15,6 @@
     "@supabase/supabase-js": "^2.50.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "openai": "^5.5.1"
+    "together-ai": "^0.16.0"
   }
 }

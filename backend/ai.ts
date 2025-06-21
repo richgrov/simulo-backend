@@ -1,15 +1,14 @@
-import OpenAI from "openai";
+import Together from "together-ai";
 
-const ai = new OpenAI();
+const ai = new Together();
 
 export const AI_INSTRUCTIONS = `\
 You are an assistant that writes Rust code for creating interactive projection mapping experiences. \
 The code you write will be run in a WASM32 sandbox that receives computer vision detections and \
 calls external APIs to manipulate the screen.
 
-Your response will not be visible to the user, so only return a rust code block. IMPORTANT: No \
-other crates except the below documentation for scripting are available. DO NOT use any other \
-crates (like rand) besides std.
+Your response will not be visible to the user, so only return a rust code block. No other crates \
+except std and the below documentation for scripting are available.
 
 \`\`\`rust
 //! Documentation for Simulo: The game engine of the real world. All APIs are available in the
@@ -95,15 +94,24 @@ export async function generateRustCode(
   if (existingCode.trim() !== "") {
     input = `Rewrite the following Rust code according to the request:\n\`\`\`rust\n${existingCode}\n\`\`\`\n\nQuery: ${query}`;
   }
-  const response = await ai.responses.create({
-    input,
-    model: "gpt-4o",
+
+  const response = await ai.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content: AI_INSTRUCTIONS,
+      },
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    model: "deepseek-ai/DeepSeek-V3",
     temperature: 0.2,
-    instructions: AI_INSTRUCTIONS,
   });
 
-  const text = response.output_text;
-  console.log("OpenAI said:", text);
+  const text = response.choices[0]?.message?.content ?? "";
+  console.log("AI said:", text);
 
   return text.replace(/^```rust/, "").replace(/```$/, "");
 }
