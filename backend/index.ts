@@ -1,99 +1,13 @@
-import OpenAI from "openai";
 import { createClient, type User } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
 import { JobQueue, finishJob } from "./job-queue";
-
-const ai = new OpenAI();
+import { generateRustCode } from "./ai";
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_API_KEY!,
   {},
 );
-
-const AI_INSTRUCTIONS = `\
-You are an assistant that writes Rust code for creating interactive projection mapping experiences. \
-The code you write will be run in a WASM32 sandbox that receives computer vision detections and \
-calls external APIs to manipulate the screen.
-
-Your response will not be visible to the user, so only return a rust code block. Below is the \
-documentation for scripting:
-
-\`\`\`rust
-//! Documentation for Simulo: The game engine of the real world. All APIs are available in the
-//! global namespace.
-//!
-//! A struct \`Game\` must be declared with the following functions:
-//! \`\`\`rust
-//! pub struct Game {
-//!     // ...
-//! }
-//!
-//! impl Game {
-//!     pub fn new() -> Self {
-//!         // ...
-//!     }
-//!
-//!     // \`delta\` is in seconds.
-//!     pub fn update(&mut self, delta: f32) {
-//!         // ...
-//!     }
-//!
-//!     // Called when a pose detection comes within view, moves, or leaves view. X and Y
-//!     // coordinates are in pixels. When a pose comes within view, it is assigned an ID that's
-//!     // reused for future updates like moving or leaving view. If both X and Y are exactly -1,
-//!     // the pose has left view.
-//!     pub fn on_pose_update(&mut self, id: u32, x: f32, y: f32) {
-//!         // ...
-//!     }
-//! }
-//! \`\`\`
-//!
-//! Coordinate system:
-//! +X = left
-//! +Y = up
-//! +Z = forward
-
-/// A lightweight handle to an object in the scene. If dropped, the object will still exist. If
-/// deleted with \`GameObject::delete()\`, the object will be removed from the scene and all copies
-/// of this object will be invalid.
-pub struct GameObject(/* stub */);
-
-impl GameObject {
-    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel
-    /// scale, so you must likely want to rescale it to something bigger with \`GameObject::set_scale()\`.
-    pub fn new(x: f32, y: f32) -> Self {
-        // stub
-    }
-
-    /// Returns the x-coordinate of the object's position in the viewport.
-    pub fn x(&self) -> f32 {
-        // stub
-    }
-
-    /// Returns the y-coordinate of the object's position in the viewport.
-    pub fn y(&self) -> f32 {
-        // stub
-    }
-
-    /// Sets the position of the object in the viewport.
-    pub fn set_position(&self, x: f32, y: f32) {
-        // stub
-    }
-
-    /// Sets the scale of the object in the viewport.
-    pub fn set_scale(&self, x: f32, y: f32) {
-        // stub
-    }
-
-    /// Deletes the object from the scene. If this object handle was cloned, all other instances are
-    /// also invalid. They may now point to nothing, or a different object.
-    pub fn delete(&self) {
-        // stub
-    }
-}
-\`\`\`
-`;
 
 const compileQueue = new JobQueue();
 
@@ -120,8 +34,8 @@ async function authorize(req: express.Request): Promise<User | undefined> {
   return data.user;
 }
 
-server.options("/agent", cors(corsOptions));
-server.post("/agent", async (req, res) => {
+server.options("/project/:projectId/agent", cors(corsOptions));
+server.post("/project/:projectId/agent", async (req, res) => {
   const query = (req.body as string).trim();
   if (query.length < 1 || query.length > 1000) {
     res.status(400).send("invalid query");
@@ -134,21 +48,42 @@ server.post("/agent", async (req, res) => {
     return;
   }
 
-  const response = await ai.responses.create({
-    input: query,
-    model: "gpt-4o",
-    temperature: 0.2,
-    instructions: AI_INSTRUCTIONS,
-  });
+  const projectId = req.params.projectId;
+  const { data: projectData, error: projectError } = await supabase
+    .from("projects")
+    .select("source")
+    .eq("id", projectId)
+    .single();
 
-  const text = response.output_text;
-  console.log("OpenAI said:", text);
+  if (projectError) {
+    console.error("failed to fetch project", projectError);
+    res.status(500).send("internal server error");
+    return;
+  }
 
-  const code = text.replace(/^```rust/, "").replace(/```$/, "");
-  const fullCode = "use crate::simulo::*;\n" + code;
+  if (!projectData) {
+    res.status(404).send("project not found");
+    return;
+  }
+
+  const code = await generateRustCode(query, projectData.source);
 
   try {
-    const processed = await compileQueue.enqueue(fullCode);
+    const processed = await compileQueue.enqueue(
+      "use crate::simulo::*;\n" + code,
+    );
+
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update({ source: code })
+      .eq("id", projectId);
+
+    if (updateError) {
+      console.error("failed to update project", updateError);
+      res.status(500).send("internal server error");
+      return;
+    }
+
     res.sendFile(processed.wasmPath, (err) => {
       if (err) {
         console.error("Failed to send file", err);

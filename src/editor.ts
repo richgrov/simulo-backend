@@ -19,10 +19,6 @@ export function init(project: string) {
   editorControls.style.removeProperty("display");
 }
 
-function hide() {
-  editorControls.style.display = "none";
-}
-
 document
   .querySelector("#prompt-submit")!
   .addEventListener("click", async () => {
@@ -40,13 +36,16 @@ document
     }
 
     try {
-      const response = await fetch(import.meta.env.VITE_BACKEND + "/agent", {
-        method: "POST",
-        headers: {
-          Authorization: `${data.session.access_token}`,
+      const response = await fetch(
+        import.meta.env.VITE_BACKEND + `/project/${projectId}/agent`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `${data.session.access_token}`,
+          },
+          body: promptInput.value,
         },
-        body: promptInput.value,
-      });
+      );
 
       if (!response.ok) {
         const error = await response.text();
