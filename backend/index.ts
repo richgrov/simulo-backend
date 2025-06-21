@@ -9,7 +9,6 @@ const supabase = createClient(
   {},
 );
 
-
 const compileQueue = new JobQueue();
 
 const corsOptions = { origin: process.env.CORS };
@@ -50,21 +49,41 @@ server.post("/project/:projectId/agent", async (req, res) => {
   }
 
   const projectId = req.params.projectId;
-  let existingCode: string | undefined;
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
     .select("source")
     .eq("id", projectId)
     .single();
-  if (!projectError && projectData && projectData.source) {
-    existingCode = projectData.source as string;
+
+  if (projectError) {
+    console.error("failed to fetch project", projectError);
+    res.status(500).send("internal server error");
+    return;
   }
 
-  const code = await generateRustCode(query, existingCode);
-  const fullCode = "use crate::simulo::*;\n" + code;
+  if (!projectData) {
+    res.status(404).send("project not found");
+    return;
+  }
+
+  const code = await generateRustCode(query, projectData.source);
 
   try {
-    const processed = await compileQueue.enqueue(fullCode);
+    const processed = await compileQueue.enqueue(
+      "use crate::simulo::*;\n" + code,
+    );
+
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update({ source: code })
+      .eq("id", projectId);
+
+    if (updateError) {
+      console.error("failed to update project", updateError);
+      res.status(500).send("internal server error");
+      return;
+    }
+
     res.sendFile(processed.wasmPath, (err) => {
       if (err) {
         console.error("Failed to send file", err);

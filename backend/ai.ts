@@ -89,10 +89,10 @@ impl GameObject {
 
 export async function generateRustCode(
   query: string,
-  existingCode?: string,
+  existingCode: string,
 ): Promise<string> {
   let input = query;
-  if (existingCode && existingCode.trim() !== "") {
+  if (existingCode.trim() !== "") {
     input = `Rewrite the following Rust code according to the request:\n\`\`\`rust\n${existingCode}\n\`\`\`\n\nQuery: ${query}`;
   }
   const response = await ai.responses.create({
