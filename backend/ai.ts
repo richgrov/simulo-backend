@@ -92,7 +92,7 @@ export async function generateRustCode(
 ): Promise<string> {
   let input = query;
   if (existingCode && existingCode.trim() !== "") {
-    input = `Modify the following Rust code according to the request.\n\nRequest: ${query}\n\nExisting code:\n\`\`\`rust\n${existingCode}\n\`\`\``;
+    input = `Rewrite the following Rust code according to the request:\n\`\`\`rust\n${existingCode}\n\`\`\`\n\nQuery: ${query}`;
   }
   const response = await ai.responses.create({
     input,
