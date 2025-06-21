@@ -1,8 +1,12 @@
 import { createClient, type User } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
+import fs from "fs/promises";
+import { s3, write as s3Write } from "bun";
+
 import { JobQueue, finishJob } from "./job-queue";
 import { generateRustCode } from "./ai";
+
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_API_KEY!,
@@ -84,12 +88,24 @@ server.post("/project/:projectId/agent", async (req, res) => {
       return;
     }
 
-    res.sendFile(processed.wasmPath, (err) => {
-      if (err) {
-        console.error("Failed to send file", err);
-      }
+    const s3File = s3.file(processed.id);
+
+    try {
+      const content = await fs.readFile(processed.wasmPath);
+      await s3Write(s3File, content);
+    } catch (error) {
+      console.error("wasm upload failed", error);
+      res.status(500).send("internal server error");
+      return;
+    } finally {
       finishJob(processed);
+    }
+
+    const url = s3File.presign({
+      acl: "public-read",
+      expiresIn: 60 * 60,
     });
+    res.send(url);
   } catch (err) {
     console.error("Job failed", err);
     res.status(500).send("job failed");

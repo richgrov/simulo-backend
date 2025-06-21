@@ -21,6 +21,7 @@ interface Job {
 }
 
 export interface JobResult {
+  id: string;
   directory: string;
   wasmPath: string;
 }
@@ -83,7 +84,7 @@ crate-type = ["cdylib"]`,
     );
 
     console.log(`Job ${id} completed`);
-    return { directory: dir, wasmPath };
+    return { id, directory: dir, wasmPath };
   }
 
   private async process() {

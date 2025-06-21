@@ -47,18 +47,12 @@ document
         },
       );
 
+      const text = await response.text();
+
       if (!response.ok) {
-        const error = await response.text();
-        showMessage(promptMessage, `API ERROR: ${error}`, "error");
+        showMessage(promptMessage, `API ERROR: ${text}`, "error");
       } else {
-        const output = await response.blob();
-        showMessage(promptMessage, "INITIALIZING DOWNLOAD", "success");
-        const url = URL.createObjectURL(output);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "program.wasm";
-        a.click();
-        URL.revokeObjectURL(url);
+        showMessage(promptMessage, text, "success");
       }
     } catch (error) {
       console.error("Fetch error:", error);
