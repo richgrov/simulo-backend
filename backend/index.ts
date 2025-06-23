@@ -1,4 +1,4 @@
-import { createClient, type User } from "@supabase/supabase-js";
+import { type User } from "@supabase/supabase-js";
 import express from "express";
 import cors from "cors";
 import fs from "fs/promises";
@@ -6,12 +6,8 @@ import { s3, write as s3Write } from "bun";
 
 import { JobQueue, finishJob } from "./job-queue";
 import { generateRustCode } from "./ai";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_API_KEY!,
-  {},
-);
+import { supabase } from "./supabase";
+import "./websocket";
 
 const compileQueue = new JobQueue();
 
