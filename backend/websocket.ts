@@ -120,7 +120,10 @@ Bun.serve({
           if (error) {
             console.error(error);
             ws.close(1011);
+            return;
           }
+
+          ws.sendText("OK");
         }
         return;
       }
