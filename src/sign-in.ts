@@ -42,11 +42,7 @@ submitButton.addEventListener("click", async (event) => {
     if (error) {
       showMessage(messageContainer, `Error: ${error.message}`, "error");
     } else {
-      showMessage(
-        messageContainer,
-        "Check your email for the login link",
-        "success",
-      );
+      showMessage(messageContainer, "LOGIN LINK WAS SENT", "success");
       emailInput.value = "";
     }
   } catch (error: any) {

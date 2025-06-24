@@ -97,7 +97,7 @@ textarea {
 
 h1 {
     color: var(--primary-color);
-    margin-bottom: 1rem;
+    margin: 0;
 }
 
 button {
@@ -121,10 +121,14 @@ textarea {
     color: var(--secondary);
 }
 
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
 .message {
     padding: 0.75rem;
     text-align: center;
-    margin-top: 1rem;
     color: lime;
     background-color: rgba(0, 100, 0, 0.8);
     border-right: 3px solid lime;

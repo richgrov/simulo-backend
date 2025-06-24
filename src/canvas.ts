@@ -23,7 +23,7 @@ export function init() {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.02;
+  controls.dampingFactor = 0.1;
 
   const gridSize = 50;
   const spacing = 4;
