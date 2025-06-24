@@ -2,8 +2,6 @@ import { supabase } from "./auth/supabase";
 import { showMessage } from "./ui";
 import * as canvas from "./canvas";
 
-canvas.init();
-
 const promptInput = document.querySelector(
   "#prompt-input",
 )! as HTMLTextAreaElement;
@@ -17,6 +15,7 @@ let projectId: string;
 export function init(project: string) {
   projectId = project;
   editorControls.style.removeProperty("display");
+  canvas.init(projectId);
 }
 
 document
