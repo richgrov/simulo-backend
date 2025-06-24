@@ -124,6 +124,8 @@ Bun.serve({
         }
         return;
       }
+
+      console.log(message);
     },
     async close(ws) {
       const data = ws.data as WebsocketData;
