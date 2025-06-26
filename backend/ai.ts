@@ -113,5 +113,6 @@ export async function generateRustCode(
   const text = response.choices[0]?.message?.content ?? "";
   console.log("AI said:", text);
 
-  return text.replace(/^```rust/, "").replace(/```$/, "");
+  const codeBlockStart = text.indexOf("```rust") + 7;
+  return text.substring(codeBlockStart).replace(/```$/, "");
 }
