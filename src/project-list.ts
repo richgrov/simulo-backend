@@ -4,6 +4,7 @@ import { escape } from "./ui";
 const projectList = document.getElementById("project-list")!;
 
 interface Project {
+  id: string;
   name: string;
 }
 
@@ -17,7 +18,7 @@ export async function init() {
   const projects = await fetchProjects(data.user.id);
   projectList.innerHTML = "";
 
-  for (const { name } of projects) {
+  for (const { id, name } of projects) {
     const status = "NOT DEPLOYED";
     const color = "gray";
 
@@ -63,12 +64,13 @@ export async function init() {
         >
             &#9679; ${escape(status)}
         </p>
-        <button
+        <a
             class="highlight"
             style="position: absolute; right: 30px; bottom: 0"
+            href="?${id}"
         >
             LAUNCH
-        </button>
+        </a>
     </div>`;
   }
 }
@@ -76,7 +78,7 @@ export async function init() {
 async function fetchProjects(userId: string): Promise<Project[]> {
   const { data, error } = await supabase
     .from("projects")
-    .select("name")
+    .select("id, name")
     .eq("owner", userId);
 
   if (error) {
