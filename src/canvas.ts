@@ -18,14 +18,14 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000,
 );
-camera.position.set(15, 20, 20);
+camera.position.set(15, 25, 20);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.target.set(0, 0, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
 
-const gridSize = 50;
+const gridSize = 30;
 const spacing = 4;
 
 const dotGeometry = new THREE.SphereGeometry(0.2, 8, 8);
