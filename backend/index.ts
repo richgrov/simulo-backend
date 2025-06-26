@@ -51,8 +51,9 @@ server.post("/project/:projectId/agent", async (req, res) => {
   const projectId = req.params.projectId;
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
-    .select("source")
+    .select("id, deployments ( source, created_at )")
     .eq("id", projectId)
+    .order("created_at", { ascending: false })
     .single();
 
   if (projectError) {
@@ -66,27 +67,16 @@ server.post("/project/:projectId/agent", async (req, res) => {
     return;
   }
 
-  const code = await generateRustCode(query, projectData.source);
+  const source = projectData.deployments[0]?.source || "";
+  const code = await generateRustCode(query, source);
 
   try {
     const processed = await compileQueue.enqueue(
       "use crate::simulo::*;\n" + code,
     );
 
-    const { error: updateError } = await supabase
-      .from("projects")
-      .update({ source: code })
-      .eq("id", projectId);
-
-    if (updateError) {
-      console.error("failed to update project", updateError);
-      res.status(500).send("internal server error");
-      return;
-    }
-
-    const s3File = s3.file(processed.id);
-
     try {
+      const s3File = s3.file(processed.id);
       const content = await fs.readFile(processed.wasmPath);
       await s3Write(s3File, content);
     } catch (error) {
@@ -97,11 +87,19 @@ server.post("/project/:projectId/agent", async (req, res) => {
       finishJob(processed);
     }
 
-    const url = s3File.presign({
-      acl: "public-read",
-      expiresIn: 60 * 60,
+    const { error: insertError } = await supabase.from("deployments").insert({
+      project_id: projectId,
+      source: code,
+      compiled_object: processed.id,
     });
-    res.send(url);
+
+    if (insertError) {
+      console.error("failed to insert deployment", insertError);
+      res.status(500).send("internal server error");
+      return;
+    }
+
+    res.send("OK");
   } catch (err) {
     console.error("Job failed", err);
     res.status(500).send("job failed");

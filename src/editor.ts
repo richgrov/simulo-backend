@@ -51,7 +51,7 @@ document
       if (!response.ok) {
         showMessage(promptMessage, `API ERROR: ${text}`, "error");
       } else {
-        showMessage(promptMessage, text, "success");
+        showMessage(promptMessage, "OPERATION SUCCESSFUL", "success");
       }
     } catch (error) {
       console.error("Fetch error:", error);
