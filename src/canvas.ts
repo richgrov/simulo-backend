@@ -1,9 +1,16 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
 import { supabase } from "./auth/supabase";
+import { Machine } from "./models";
+import { showCallout } from "./callout";
 
 const canvas = document.querySelector("canvas")!;
 if (!canvas) throw new Error("No canvas element found.");
+
+const raycaster = new THREE.Raycaster();
+
+var machines: Record<number, Machine> = {};
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -137,6 +144,10 @@ function loop() {
   const delta = (now - lastTime) / 1000;
   lastTime = now;
 
+  for (const machine of Object.values(machines)) {
+    machine.update();
+  }
+
   for (const squareState of animatedSquares) {
     const { mesh, fadeDirection } = squareState;
     const mat = mesh.material as THREE.MeshBasicMaterial;
@@ -175,54 +186,32 @@ window.onresize = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 };
 
-const wireframeMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffffff,
-  wireframe: true,
-});
+window.onmousedown = (event) => {
+  const mousePos = new THREE.Vector2(
+    (event.clientX / window.innerWidth) * 2 - 1,
+    -(event.clientY / window.innerHeight) * 2 + 1,
+  );
 
-class Machine extends THREE.Object3D {
-  constructor(
-    x: number,
-    y: number,
-    z: number,
-    xRot: number,
-    yRot: number,
-    zRot: number,
-    public simuloId: number,
-  ) {
-    super();
-    this.position.set(x, y, z);
-    this.rotation.set(xRot, yRot, zRot);
+  raycaster.setFromCamera(mousePos, camera);
+  for (const intersect of raycaster.intersectObjects(scene.children)) {
+    var obj = intersect.object;
+    if (obj.parent instanceof Machine) {
+      obj = obj.parent;
+    } else if (!(obj instanceof Machine)) {
+      continue;
+    }
 
-    this.add(
-      new THREE.Mesh(
-        new THREE.BoxGeometry(2, 1, 2, 3, 2, 3),
-        wireframeMaterial,
-      ),
-    );
-
-    const cone = new THREE.Mesh(
-      new THREE.TetrahedronGeometry(0.75, 0),
-      wireframeMaterial,
-    );
-    cone.position.set(0, -1.25, 0);
-    cone.rotation.set(Math.PI / 5, 0, -Math.PI / 4);
-    this.add(cone);
-
-    const field = new THREE.Mesh(
-      new THREE.ConeGeometry(5, 9),
-      new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        opacity: 0.5,
-        transparent: true,
-      }),
-    );
-    field.position.set(0, -(9 / 2) - 0.5, 0);
-    this.add(field);
+    (obj as Machine).onClick();
+    showCallout(event.clientX, event.clientY);
   }
-}
+};
 
 export async function init(projectId: string) {
+  for (const machine of Object.values(machines)) {
+    machine.removeFromParent();
+  }
+  machines = {};
+
   const { data, error } = await supabase
     .from("projects")
     .select("scene")
@@ -246,6 +235,27 @@ export async function init(projectId: string) {
     }
 
     const [x, y, z, xRot, yRot, zRot, id] = params.slice(1).map(Number);
-    scene.add(new Machine(x, y, z, xRot, yRot, zRot, id));
+    const machine = new Machine(x, y, z, xRot, yRot, zRot, id);
+    scene.add(machine);
+    machines[id] = machine;
+  }
+
+  const { data: machinesData, error: machinesError } = await supabase
+    .from("machines")
+    .select("id, status")
+    .eq("project", projectId);
+
+  if (machinesError) {
+    console.error(machinesError);
+    return;
+  }
+
+  for (const machineData of machinesData) {
+    const machine = machines[machineData.id];
+    if (!machine) {
+      continue;
+    }
+
+    machine.status = machineData.status;
   }
 }
