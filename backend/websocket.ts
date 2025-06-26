@@ -1,5 +1,7 @@
-import { supabase } from "./supabase";
 import * as crypto from "crypto";
+import { s3 } from "bun";
+
+import { supabase } from "./supabase";
 
 interface WebsocketData {
   machineId: number | undefined;
@@ -123,12 +125,42 @@ Bun.serve({
             return;
           }
 
-          ws.sendText("OK");
+          const { data: deploymentData, error: deploymentError } =
+            await supabase
+              .from("machines")
+              .select("id, projects(deployments(compiled_object, created_at))")
+              .eq("id", machineId)
+              .order("created_at", {
+                ascending: false,
+                referencedTable: "projects.deployments",
+              })
+              .single();
+
+          if (deploymentError) {
+            console.error(deploymentError);
+            ws.close(1011);
+            return;
+          }
+
+          // Supabase incorrectly types this as an array when it's a 1-1 relationship
+          const objectId = reinterpretSingle(deploymentData.projects)
+            .deployments[0]?.compiled_object;
+          if (!objectId) {
+            ws.close(4006);
+            return;
+          }
+
+          const url = s3.file(objectId).presign({
+            acl: "public-read",
+            expiresIn: 60 * 20,
+          });
+
+          ws.sendText(url);
         }
         return;
       }
 
-      console.log(message);
+      console.log(`[machine ${data.machineId}]`, message);
     },
     async close(ws) {
       const data = ws.data as WebsocketData;
@@ -148,3 +180,7 @@ Bun.serve({
     },
   },
 });
+
+function reinterpretSingle<T>(array: T[]): T {
+  return array as unknown as T;
+}
