@@ -83,6 +83,11 @@ impl GameObject {
         // stub
     }
 }
+
+/// Returns a evenly distributed random float in range [0, 1).
+pub fn random_float() -> f32 {
+    // stub
+}
 \`\`\`
 `;
 

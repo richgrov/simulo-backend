@@ -73,6 +73,10 @@ impl GameObject {
     }
 }
 
+pub fn random_float() -> f32 {
+    unsafe { simulo_random() }
+}
+
 unsafe extern "C" {
     fn simulo_create_object(x: f32, y: f32) -> u32;
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
@@ -80,4 +84,5 @@ unsafe extern "C" {
     fn simulo_get_object_x(id: u32) -> f32;
     fn simulo_get_object_y(id: u32) -> f32;
     fn simulo_delete_object(id: u32);
+    fn simulo_random() -> f32;
 }
