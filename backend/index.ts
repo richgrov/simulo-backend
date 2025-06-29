@@ -8,15 +8,12 @@ import { supabase } from "./supabase";
 import { upgradeWebsocket, websocket } from "./websocket";
 
 const compileQueue = new JobQueue();
-const corsOrigin = process.env.CORS;
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": corsOrigin ?? "*",
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": process.env.CORS!,
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 async function authorize(req: Request): Promise<User | undefined> {
   const auth = req.headers.get("Authorization");
@@ -40,17 +37,23 @@ function parseProjectId(url: string): string | undefined {
 async function handleAgentPost(req: Request): Promise<Response> {
   const projectId = parseProjectId(req.url);
   if (!projectId) {
-    return new Response("not found", { status: 404, headers: corsHeaders() });
+    return new Response("not found", { status: 404, headers: corsHeaders });
   }
 
   const query = (await req.text()).trim();
   if (query.length < 1 || query.length > 1000) {
-    return new Response("invalid query", { status: 400, headers: corsHeaders() });
+    return new Response("bad request", {
+      status: 400,
+      headers: corsHeaders,
+    });
   }
 
   const user = await authorize(req);
   if (!user) {
-    return new Response("unauthorized", { status: 401, headers: corsHeaders() });
+    return new Response("unauthorized", {
+      status: 401,
+      headers: corsHeaders,
+    });
   }
 
   const { data: projectData, error: projectError } = await supabase
@@ -62,18 +65,26 @@ async function handleAgentPost(req: Request): Promise<Response> {
 
   if (projectError) {
     console.error("failed to fetch project", projectError);
-    return new Response("internal server error", { status: 500, headers: corsHeaders() });
+    return new Response("internal server error", {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 
   if (!projectData) {
-    return new Response("project not found", { status: 404, headers: corsHeaders() });
+    return new Response("project not found", {
+      status: 404,
+      headers: corsHeaders,
+    });
   }
 
   const source = projectData.deployments[0]?.source || "";
   const code = await generateRustCode(query, source);
 
   try {
-    const processed = await compileQueue.enqueue("use crate::simulo::*;\n" + code);
+    const processed = await compileQueue.enqueue(
+      "use crate::simulo::*;\n" + code,
+    );
 
     try {
       const s3File = s3.file(processed.id);
@@ -81,7 +92,10 @@ async function handleAgentPost(req: Request): Promise<Response> {
       await s3Write(s3File, content);
     } catch (error) {
       console.error("wasm upload failed", error);
-      return new Response("internal server error", { status: 500, headers: corsHeaders() });
+      return new Response("internal server error", {
+        status: 500,
+        headers: corsHeaders,
+      });
     } finally {
       finishJob(processed);
     }
@@ -94,33 +108,29 @@ async function handleAgentPost(req: Request): Promise<Response> {
 
     if (insertError) {
       console.error("failed to insert deployment", insertError);
-      return new Response("internal server error", { status: 500, headers: corsHeaders() });
+      return new Response("internal server error", {
+        status: 500,
+        headers: corsHeaders,
+      });
     }
 
-    return new Response("OK", { headers: corsHeaders() });
+    return new Response("OK", { headers: corsHeaders });
   } catch (err) {
     console.error("Job failed", err);
-    return new Response("job failed", { status: 500, headers: corsHeaders() });
+    return new Response("job failed", { status: 500, headers: corsHeaders });
   }
 }
 
-function handleOptions(): Response {
-  return new Response(null, { status: 204, headers: corsHeaders() });
-}
-
-const routes = {
-  "/project/:projectId/agent": {
-    OPTIONS: handleOptions,
-    POST: handleAgentPost,
-  },
-  "/": {
-    GET: upgradeWebsocket,
-  },
-};
-
 Bun.serve({
-  port: 3000,
-  fetch: routes,
+  routes: {
+    "/project/:projectId/agent": {
+      OPTIONS: () => new Response(null, { status: 204, headers: corsHeaders }),
+      POST: handleAgentPost,
+    },
+    "/": {
+      GET: upgradeWebsocket,
+    },
+  },
   websocket,
 });
 
