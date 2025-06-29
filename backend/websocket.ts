@@ -97,89 +97,89 @@ async function tryAuth(
   return machineId;
 }
 
-Bun.serve({
-  port: 3001,
-  fetch(req, server) {
-    if (server.upgrade(req, { data: { machineId: undefined } })) {
+export function upgradeWebsocket(
+  req: Request,
+  server: Bun.Server,
+): Response | void {
+  if (server.upgrade(req, { data: { machineId: undefined } })) {
+    return;
+  }
+  return new Response("websocket upgrade failed", { status: 500 });
+}
+
+export const websocket = {
+  idleTimeout: 10,
+  async message(ws: Bun.ServerWebSocket<unknown>, message: string | Buffer) {
+    const data = ws.data as WebsocketData;
+
+    if (data.machineId === undefined) {
+      const machineId = await tryAuth(ws, message);
+
+      if (machineId) {
+        const { error } = await supabase
+          .from("machines")
+          .update({ status: "online" })
+          .eq("id", machineId);
+
+        if (error) {
+          console.error(error);
+          ws.close(1011);
+          return;
+        }
+
+        const { data: deploymentData, error: deploymentError } = await supabase
+          .from("machines")
+          .select("id, projects(deployments(compiled_object, created_at))")
+          .eq("id", machineId)
+          .order("created_at", {
+            ascending: false,
+            referencedTable: "projects.deployments",
+          })
+          .single();
+
+        if (deploymentError) {
+          console.error(deploymentError);
+          ws.close(1011);
+          return;
+        }
+
+        // Supabase incorrectly types this as an array when it's a 1-1 relationship
+        const objectId = reinterpretSingle(deploymentData.projects)
+          .deployments[0]?.compiled_object;
+        if (!objectId) {
+          ws.close(4006);
+          return;
+        }
+
+        const url = s3.file(objectId).presign({
+          acl: "public-read",
+          expiresIn: 60 * 20,
+        });
+
+        ws.sendText(url);
+      }
       return;
     }
-    return new Response("websocket upgrade failed", { status: 500 });
+
+    console.log(`[machine ${data.machineId}]`, message);
   },
-  websocket: {
-    idleTimeout: 10,
-    async message(ws, message) {
-      const data = ws.data as WebsocketData;
+  async close(ws: Bun.ServerWebSocket<unknown>) {
+    const data = ws.data as WebsocketData;
 
-      if (data.machineId === undefined) {
-        const machineId = await tryAuth(ws, message);
+    if (data.machineId === undefined) {
+      return;
+    }
 
-        if (machineId) {
-          const { error } = await supabase
-            .from("machines")
-            .update({ status: "online" })
-            .eq("id", machineId);
+    const { error } = await supabase
+      .from("machines")
+      .update({ status: "offline" })
+      .eq("id", data.machineId);
 
-          if (error) {
-            console.error(error);
-            ws.close(1011);
-            return;
-          }
-
-          const { data: deploymentData, error: deploymentError } =
-            await supabase
-              .from("machines")
-              .select("id, projects(deployments(compiled_object, created_at))")
-              .eq("id", machineId)
-              .order("created_at", {
-                ascending: false,
-                referencedTable: "projects.deployments",
-              })
-              .single();
-
-          if (deploymentError) {
-            console.error(deploymentError);
-            ws.close(1011);
-            return;
-          }
-
-          // Supabase incorrectly types this as an array when it's a 1-1 relationship
-          const objectId = reinterpretSingle(deploymentData.projects)
-            .deployments[0]?.compiled_object;
-          if (!objectId) {
-            ws.close(4006);
-            return;
-          }
-
-          const url = s3.file(objectId).presign({
-            acl: "public-read",
-            expiresIn: 60 * 20,
-          });
-
-          ws.sendText(url);
-        }
-        return;
-      }
-
-      console.log(`[machine ${data.machineId}]`, message);
-    },
-    async close(ws) {
-      const data = ws.data as WebsocketData;
-
-      if (data.machineId === undefined) {
-        return;
-      }
-
-      const { error } = await supabase
-        .from("machines")
-        .update({ status: "offline" })
-        .eq("id", data.machineId);
-
-      if (error) {
-        console.error(error);
-      }
-    },
+    if (error) {
+      console.error(error);
+    }
   },
-});
+};
 
 function reinterpretSingle<T>(array: T[]): T {
   return array as unknown as T;
