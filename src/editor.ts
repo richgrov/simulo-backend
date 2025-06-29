@@ -14,7 +14,7 @@ let projectId: string;
 
 export function init(project: string) {
   projectId = project;
-  editorControls.style.removeProperty("display");
+  editorControls.style["display"] = "flex";
   canvas.init(projectId);
 }
 
