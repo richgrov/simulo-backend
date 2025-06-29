@@ -1,54 +1,58 @@
 import { type User } from "@supabase/supabase-js";
-import express from "express";
-import cors from "cors";
 import fs from "fs/promises";
 import { s3, write as s3Write } from "bun";
 
 import { JobQueue, finishJob } from "./job-queue";
 import { generateRustCode } from "./ai";
 import { supabase } from "./supabase";
-import "./websocket";
+import { upgradeWebsocket, websocket } from "./websocket";
 
 const compileQueue = new JobQueue();
+const corsOrigin = process.env.CORS;
 
-const corsOptions = { origin: process.env.CORS };
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": corsOrigin ?? "*",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
 
-const server = express();
-server.use(cors(corsOptions), express.text());
-
-async function authorize(req: express.Request): Promise<User | undefined> {
-  const auth = req.header("Authorization");
+async function authorize(req: Request): Promise<User | undefined> {
+  const auth = req.headers.get("Authorization");
   if (!auth) {
     return undefined;
   }
 
   const { data, error } = await supabase.auth.getUser(auth);
-  if (error) {
-    return undefined;
-  }
-
-  if (!data.user) {
+  if (error || !data.user) {
     return undefined;
   }
 
   return data.user;
 }
 
-server.options("/project/:projectId/agent", cors(corsOptions));
-server.post("/project/:projectId/agent", async (req, res) => {
-  const query = (req.body as string).trim();
+function parseProjectId(url: string): string | undefined {
+  const match = new URL(url).pathname.match(/^\/project\/([^/]+)\/agent$/);
+  return match?.[1];
+}
+
+async function handleAgentPost(req: Request): Promise<Response> {
+  const projectId = parseProjectId(req.url);
+  if (!projectId) {
+    return new Response("not found", { status: 404, headers: corsHeaders() });
+  }
+
+  const query = (await req.text()).trim();
   if (query.length < 1 || query.length > 1000) {
-    res.status(400).send("invalid query");
-    return;
+    return new Response("invalid query", { status: 400, headers: corsHeaders() });
   }
 
   const user = await authorize(req);
   if (!user) {
-    res.status(401).send("unauthorized");
-    return;
+    return new Response("unauthorized", { status: 401, headers: corsHeaders() });
   }
 
-  const projectId = req.params.projectId;
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
     .select("id, deployments ( source, created_at )")
@@ -58,22 +62,18 @@ server.post("/project/:projectId/agent", async (req, res) => {
 
   if (projectError) {
     console.error("failed to fetch project", projectError);
-    res.status(500).send("internal server error");
-    return;
+    return new Response("internal server error", { status: 500, headers: corsHeaders() });
   }
 
   if (!projectData) {
-    res.status(404).send("project not found");
-    return;
+    return new Response("project not found", { status: 404, headers: corsHeaders() });
   }
 
   const source = projectData.deployments[0]?.source || "";
   const code = await generateRustCode(query, source);
 
   try {
-    const processed = await compileQueue.enqueue(
-      "use crate::simulo::*;\n" + code,
-    );
+    const processed = await compileQueue.enqueue("use crate::simulo::*;\n" + code);
 
     try {
       const s3File = s3.file(processed.id);
@@ -81,8 +81,7 @@ server.post("/project/:projectId/agent", async (req, res) => {
       await s3Write(s3File, content);
     } catch (error) {
       console.error("wasm upload failed", error);
-      res.status(500).send("internal server error");
-      return;
+      return new Response("internal server error", { status: 500, headers: corsHeaders() });
     } finally {
       finishJob(processed);
     }
@@ -95,15 +94,34 @@ server.post("/project/:projectId/agent", async (req, res) => {
 
     if (insertError) {
       console.error("failed to insert deployment", insertError);
-      res.status(500).send("internal server error");
-      return;
+      return new Response("internal server error", { status: 500, headers: corsHeaders() });
     }
 
-    res.send("OK");
+    return new Response("OK", { headers: corsHeaders() });
   } catch (err) {
     console.error("Job failed", err);
-    res.status(500).send("job failed");
+    return new Response("job failed", { status: 500, headers: corsHeaders() });
   }
+}
+
+function handleOptions(): Response {
+  return new Response(null, { status: 204, headers: corsHeaders() });
+}
+
+const routes = {
+  "/project/:projectId/agent": {
+    OPTIONS: handleOptions,
+    POST: handleAgentPost,
+  },
+  "/": {
+    GET: upgradeWebsocket,
+  },
+};
+
+Bun.serve({
+  port: 3000,
+  fetch: routes,
+  websocket,
 });
 
-server.listen(3000, () => console.log("Online"));
+console.log("Online");
