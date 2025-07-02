@@ -121,7 +121,7 @@ async function handleAgentPost(req: Request): Promise<Response> {
   }
 }
 
-Bun.serve({
+const server = Bun.serve({
   routes: {
     "/project/:projectId/agent": {
       OPTIONS: () => new Response(null, { status: 204, headers: corsHeaders }),
@@ -134,4 +134,4 @@ Bun.serve({
   websocket,
 });
 
-console.log("Online");
+console.log(`Running on ${server.hostname}:${server.port}`);
