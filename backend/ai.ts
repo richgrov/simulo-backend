@@ -88,6 +88,16 @@ impl GameObject {
 pub fn random_float() -> f32 {
     // stub
 }
+
+/// Gets the width of the window in pixels.
+pub fn window_width() -> i32 {
+    // stub
+}
+
+/// Gets the height of the window in pixels.
+pub fn window_height() -> i32 {
+    // stub
+}
 \`\`\`
 `;
 
