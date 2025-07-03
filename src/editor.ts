@@ -1,5 +1,5 @@
 import { supabase } from "./auth/supabase";
-import { showMessage } from "./ui";
+import * as ui from "./ui";
 import * as canvas from "./canvas";
 
 const promptInput = document.querySelector(
@@ -18,47 +18,53 @@ export function init(project: string) {
   canvas.init(projectId);
 }
 
-document
-  .querySelector("#prompt-submit")!
-  .addEventListener("click", async () => {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error(error);
-      showMessage(promptMessage, `Error: ${error.message}`, "error");
-      return;
-    }
+const promptSubmitBtn = document.querySelector(
+  "#prompt-submit",
+)! as HTMLButtonElement;
 
-    if (!data.session) {
-      console.error("No session present");
-      showMessage(promptMessage, "Internal error.", "error");
-      return;
-    }
+promptSubmitBtn.addEventListener("click", async () => {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    console.error(error);
+    ui.showMessage(promptMessage, `Error: ${error.message}`, "error");
+    return;
+  }
 
-    try {
-      const response = await fetch(
-        import.meta.env.VITE_BACKEND + `/project/${projectId}/agent`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `${data.session.access_token}`,
-          },
-          body: promptInput.value,
+  if (!data.session) {
+    console.error("No session present");
+    ui.showMessage(promptMessage, "Internal error.", "error");
+    return;
+  }
+
+  let stopAnimation = ui.loadingText(promptSubmitBtn);
+
+  try {
+    const response = await fetch(
+      import.meta.env.VITE_BACKEND + `/project/${projectId}/agent`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `${data.session.access_token}`,
         },
-      );
+        body: promptInput.value,
+      },
+    );
 
-      const text = await response.text();
+    const text = await response.text();
 
-      if (!response.ok) {
-        showMessage(promptMessage, `API ERROR: ${text}`, "error");
-      } else {
-        showMessage(promptMessage, "OPERATION SUCCESSFUL", "success");
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      showMessage(
-        promptMessage,
-        `NETWORKING ERROR- VERIFY CONNECTION AND RETRY`,
-        "error",
-      );
+    if (!response.ok) {
+      ui.showMessage(promptMessage, `ERROR: ${text}`, "error");
+    } else {
+      ui.showMessage(promptMessage, "OPERATION SUCCESSFUL", "success");
     }
-  });
+  } catch (error) {
+    console.error("Fetch error:", error);
+    ui.showMessage(
+      promptMessage,
+      `NETWORKING ERROR- VERIFY CONNECTION AND RETRY`,
+      "error",
+    );
+  } finally {
+    stopAnimation();
+  }
+});

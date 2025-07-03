@@ -27,3 +27,23 @@ export function escape(text: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+export function loadingText(element: HTMLElement): () => void {
+  let initialText = element.innerText;
+
+  const animation = [
+    "PROCESSING",
+    "< PROCESSING >",
+    "<< PROCESSING >>",
+    "<<< PROCESSING >>>",
+  ];
+  let index = 0;
+  const interval = setInterval(() => {
+    element.innerText = animation[index++ % animation.length];
+  }, 200);
+
+  return () => {
+    clearInterval(interval);
+    element.innerText = initialText;
+  };
+}
