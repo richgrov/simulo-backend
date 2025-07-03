@@ -35,8 +35,8 @@ pub struct GameObject(u32);
 impl GameObject {
     /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel
     /// scale, so you must likely want to rescale it to something bigger with `GameObject::set_scale()`.
-    pub fn new(x: f32, y: f32) -> Self {
-        let id = unsafe { simulo_create_object(x, y) };
+    pub fn new(x: f32, y: f32, material: &Material) -> Self {
+        let id = unsafe { simulo_create_object(x, y, material.0) };
         GameObject(id)
     }
 
@@ -73,6 +73,14 @@ impl GameObject {
     }
 }
 
+pub struct Material(u32);
+
+impl Material {
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        unsafe { Material(simulo_create_material(r, g, b)) }
+    }
+}
+
 pub fn random_float() -> f32 {
     unsafe { simulo_random() }
 }
@@ -86,7 +94,7 @@ pub fn window_height() -> i32 {
 }
 
 unsafe extern "C" {
-    fn simulo_create_object(x: f32, y: f32) -> u32;
+    fn simulo_create_object(x: f32, y: f32, material: u32) -> u32;
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
     fn simulo_set_object_scale(id: u32, x: f32, y: f32);
     fn simulo_get_object_x(id: u32) -> f32;
@@ -95,4 +103,5 @@ unsafe extern "C" {
     fn simulo_random() -> f32;
     fn simulo_window_width() -> i32;
     fn simulo_window_height() -> i32;
+    fn simulo_create_material(r: f32, g: f32, b: f32) -> u32;
 }
