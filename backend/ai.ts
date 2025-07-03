@@ -84,6 +84,18 @@ impl GameObject {
     }
 }
 
+// A material changes the color of an object.
+pub struct Material(/* stub */);
+
+impl Material {
+    // Create a material that flat-shades all its objects with a given color.
+    // Creating materials is not super fast, and should not be done often. Strive to reuse materials
+    // and create them at the beginning of the program.
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        // stub
+    }
+}
+
 /// Returns a evenly distributed random float in range [0, 1).
 pub fn random_float() -> f32 {
     // stub
