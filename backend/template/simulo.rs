@@ -97,12 +97,72 @@ pub fn window_height() -> i32 {
 pub struct Pose(pub PoseData);
 
 impl Pose {
+    pub fn nose(&self) -> glam::Vec2 {
+        self.keypoint(0)
+    }
+
+    pub fn left_eye(&self) -> glam::Vec2 {
+        self.keypoint(1)
+    }
+
+    pub fn right_eye(&self) -> glam::Vec2 {
+        self.keypoint(2)
+    }
+
+    pub fn left_ear(&self) -> glam::Vec2 {
+        self.keypoint(3)
+    }
+
+    pub fn right_ear(&self) -> glam::Vec2 {
+        self.keypoint(4)
+    }
+
+    pub fn left_shoulder(&self) -> glam::Vec2 {
+        self.keypoint(5)
+    }
+
+    pub fn right_shoulder(&self) -> glam::Vec2 {
+        self.keypoint(6)
+    }
+
+    pub fn left_elbow(&self) -> glam::Vec2 {
+        self.keypoint(7)
+    }
+
+    pub fn right_elbow(&self) -> glam::Vec2 {
+        self.keypoint(8)
+    }
+
     pub fn left_wrist(&self) -> glam::Vec2 {
         self.keypoint(9)
     }
 
     pub fn right_wrist(&self) -> glam::Vec2 {
         self.keypoint(10)
+    }
+
+    pub fn left_hip(&self) -> glam::Vec2 {
+        self.keypoint(11)
+    }
+
+    pub fn right_hip(&self) -> glam::Vec2 {
+        self.keypoint(12)
+    }
+
+    pub fn left_knee(&self) -> glam::Vec2 {
+        self.keypoint(13)
+    }
+
+    pub fn right_knee(&self) -> glam::Vec2 {
+        self.keypoint(14)
+    }
+
+    pub fn left_ankle(&self) -> glam::Vec2 {
+        self.keypoint(15)
+    }
+
+    pub fn right_ankle(&self) -> glam::Vec2 {
+        self.keypoint(16)
     }
 
     fn keypoint(&self, index: usize) -> glam::Vec2 {

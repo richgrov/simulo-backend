@@ -10,6 +10,9 @@ calls external APIs to manipulate the screen.
 Write a single, complete rust code block. No other crates except std and the below documentation \
 for scripting are available.
 
+Some APIs use glam for vector and matrix operations. Access the components of a vector using the \
+\`.x\`, \`.y\`, \`.z\`, etc fields.
+
 \`\`\`rust
 //! Documentation for Simulo: The game engine of the real world. All APIs are available in the
 //! global namespace.
@@ -47,6 +50,8 @@ for scripting are available.
 /// A lightweight handle to an object in the scene. If dropped, the object will still exist. If
 /// deleted with \`GameObject::delete()\`, the object will be removed from the scene and all copies
 /// of this object will be invalid.
+///
+/// The position of the object is anchored at the top-left corner.
 pub struct GameObject(/* stub */);
 
 impl GameObject {
@@ -102,11 +107,71 @@ impl Material {
 pub struct Pose(/* stub */);
 
 impl Pose {
+    pub fn nose(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_eye(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_eye(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_ear(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_ear(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_shoulder(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_shoulder(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_elbow(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_elbow(&self) -> glam::Vec2 {
+        // stub
+    }
+
     pub fn left_wrist(&self) -> glam::Vec2 {
         // stub
     }
 
     pub fn right_wrist(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_hip(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_hip(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_knee(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_knee(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn left_ankle(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_ankle(&self) -> glam::Vec2 {
         // stub
     }
 }
