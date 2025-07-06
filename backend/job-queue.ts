@@ -49,6 +49,7 @@ export class JobQueue {
     fs.appendFile(
       path.join(dir, "Cargo.toml"),
       `\
+glam = "0.30.4"
 
 [lib]
 crate-type = ["cdylib"]`,

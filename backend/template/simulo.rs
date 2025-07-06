@@ -93,7 +93,58 @@ pub fn window_height() -> i32 {
     unsafe { simulo_window_height() }
 }
 
+#[derive(Clone)]
+pub struct Pose(pub PoseData);
+
+impl Pose {
+    pub fn left_wrist(&self) -> glam::Vec2 {
+        self.keypoint(9)
+    }
+
+    pub fn right_wrist(&self) -> glam::Vec2 {
+        self.keypoint(10)
+    }
+
+    fn keypoint(&self, index: usize) -> glam::Vec2 {
+        glam::Vec2::new(self.0[index * 2], self.0[index * 2 + 1])
+    }
+}
+
+static mut GAME: *mut crate::game::Game = std::ptr::null_mut();
+
+type PoseData = [f32; 17 * 2];
+static mut POSE_DATA: PoseData = [0.0; 17 * 2];
+
+#[unsafe(no_mangle)]
+#[allow(static_mut_refs)]
+pub extern "C" fn init(_root: u32) {
+    let g = Box::new(crate::game::Game::new());
+    unsafe {
+        GAME = Box::leak(g);
+        simulo_set_pose_buffer(POSE_DATA.as_mut_ptr());
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn update(delta: f32) {
+    unsafe {
+        (*GAME).update(delta);
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn pose(id: u32, alive: bool) {
+    unsafe {
+        if alive {
+            (*GAME).on_pose_update(id, Some(&Pose(POSE_DATA)));
+        } else {
+            (*GAME).on_pose_update(id, None);
+        }
+    }
+}
+
 unsafe extern "C" {
+    fn simulo_set_pose_buffer(data: *mut f32);
     fn simulo_create_object(x: f32, y: f32, material: u32) -> u32;
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
     fn simulo_set_object_scale(id: u32, x: f32, y: f32);

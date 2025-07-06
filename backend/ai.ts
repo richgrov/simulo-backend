@@ -30,11 +30,10 @@ for scripting are available.
 //!         // ...
 //!     }
 //!
-//!     // Called when a pose detection comes within view, moves, or leaves view. X and Y
-//!     // coordinates are in pixels. When a pose comes within view, it is assigned an ID that's
-//!     // reused for future updates like moving or leaving view. If both X and Y are exactly -1,
-//!     // the pose has left view.
-//!     pub fn on_pose_update(&mut self, id: u32, x: f32, y: f32) {
+//!     // Called when a pose detection comes within view, moves, or leaves view. When a pose comes
+//!     // within view, it is assigned an ID that's reused for future updates like moving or
+//!     // leaving view. If the pose data is None, the pose has left view.
+//!     pub fn on_pose_update(&mut self, id: u32, pose: Option<&Pose>) {
 //!         // ...
 //!     }
 //! }
@@ -93,6 +92,21 @@ impl Material {
     // Creating materials is not super fast, and should not be done often. Strive to reuse materials
     // and create them at the beginning of the program.
     pub fn new(r: f32, g: f32, b: f32) -> Self {
+        // stub
+    }
+}
+
+/// A detected pose complete with (x, y) screen coordinates for various body points. Use the
+/// relevant getter functions to access the coordinates.
+#[derive(Clone)]
+pub struct Pose(/* stub */);
+
+impl Pose {
+    pub fn left_wrist(&self) -> glam::Vec2 {
+        // stub
+    }
+
+    pub fn right_wrist(&self) -> glam::Vec2 {
         // stub
     }
 }
