@@ -58,27 +58,22 @@ impl GameObject {
     /// Creates and spawns a new object with the given viewport position and material. It starts at
     // a 1x1 pixel scale, so you must likely want to rescale it to something bigger with
     // \`GameObject::set_scale()\`.
-    pub fn new(x: f32, y: f32, material: &Material) -> Self {
+    pub fn new(position: glam::Vec2, material: &Material) -> Self {
         // stub
     }
 
-    /// Returns the x-coordinate of the object's position in the viewport.
-    pub fn x(&self) -> f32 {
-        // stub
-    }
-
-    /// Returns the y-coordinate of the object's position in the viewport.
-    pub fn y(&self) -> f32 {
+    /// Gets the position of the object in viewport pixels.
+    pub fn position(&self) -> glam::Vec2 {
         // stub
     }
 
     /// Sets the position of the object in the viewport.
-    pub fn set_position(&self, x: f32, y: f32) {
+    pub fn set_position(&self, pos: glam::Vec2) {
         // stub
     }
 
     /// Sets the scale of the object in the viewport.
-    pub fn set_scale(&self, x: f32, y: f32) {
+    pub fn set_scale(&self, scale: glam::Vec2) {
         // stub
     }
 
@@ -181,13 +176,8 @@ pub fn random_float() -> f32 {
     // stub
 }
 
-/// Gets the width of the window in pixels.
-pub fn window_width() -> i32 {
-    // stub
-}
-
-/// Gets the height of the window in pixels.
-pub fn window_height() -> i32 {
+/// Gets the size of the window in pixels.
+pub fn window_size() -> glam::IVec2 {
     // stub
 }
 \`\`\`

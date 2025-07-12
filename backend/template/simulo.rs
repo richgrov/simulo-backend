@@ -1,71 +1,28 @@
-//! Documentation for Simulo: the game engine of the real world. All APIs are available in the
-//! global namespace.
-//!
-//! A struct `Game` must be declared with the following functions:
-//! ```rust
-//! pub struct Game {
-//!     // ...
-//! }
-//!
-//! impl Game {
-//!     pub fn new() -> Self {
-//!         // ...
-//!     }
-//!
-//!     // `delta` is in seconds
-//!     pub fn update(&mut self, delta: f32) {
-//!         // ...
-//!     }
-//! }
-//! ```
-//!
-//! Coordinate system:
-//! +X = left
-//! +Y = up
-//! +Z = forward
-
-/// A lightweight handle to an object in the scene. If dropped, the object will still exist. If
-/// deleted with `GameObject::delete()`, the object will be removed from the scene and all copies
-/// of this object will be invalid.
-///
-/// The object's position describes the top-left corner of the it's bounding box.
 pub struct GameObject(u32);
 
 #[allow(dead_code)]
 impl GameObject {
-    /// Creates and spawns a new object at the given viewport position. It starts at a 1x1 pixel
-    /// scale, so you must likely want to rescale it to something bigger with `GameObject::set_scale()`.
-    pub fn new(x: f32, y: f32, material: &Material) -> Self {
-        let id = unsafe { simulo_create_object(x, y, material.0) };
+    pub fn new(position: glam::Vec2, material: &Material) -> Self {
+        let id = unsafe { simulo_create_object(position.x, position.y, material.0) };
         GameObject(id)
     }
 
-    /// Returns the x-coordinate of the object's position in the viewport.
-    pub fn x(&self) -> f32 {
-        unsafe { simulo_get_object_x(self.0) }
+    pub fn position(&self) -> glam::Vec2 {
+        unsafe { glam::Vec2::new(simulo_get_object_x(self.0), simulo_get_object_y(self.0)) }
     }
 
-    /// Returns the y-coordinate of the object's position in the viewport.
-    pub fn y(&self) -> f32 {
-        unsafe { simulo_get_object_y(self.0) }
-    }
-
-    /// Sets the position of the object in the viewport.
-    pub fn set_position(&self, x: f32, y: f32) {
+    pub fn set_position(&self, pos: glam::Vec2) {
         unsafe {
-            simulo_set_object_position(self.0, x, y);
+            simulo_set_object_position(self.0, pos.x, pos.y);
         }
     }
 
-    /// Sets the scale of the object in the viewport.
-    pub fn set_scale(&self, x: f32, y: f32) {
+    pub fn set_scale(&self, scale: glam::Vec2) {
         unsafe {
-            simulo_set_object_scale(self.0, x, y);
+            simulo_set_object_scale(self.0, scale.x, scale.y);
         }
     }
 
-    /// Deletes the object from the scene. If this object handle was cloned, all other instances are
-    /// also invalid. They may point to nothing, or a different object.
     pub fn delete(&self) {
         unsafe {
             simulo_delete_object(self.0);
@@ -85,12 +42,8 @@ pub fn random_float() -> f32 {
     unsafe { simulo_random() }
 }
 
-pub fn window_width() -> i32 {
-    unsafe { simulo_window_width() }
-}
-
-pub fn window_height() -> i32 {
-    unsafe { simulo_window_height() }
+pub fn window_size() -> glam::IVec2 {
+    unsafe { glam::IVec2::new(simulo_window_width(), simulo_window_height()) }
 }
 
 #[derive(Clone)]
