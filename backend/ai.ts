@@ -77,6 +77,11 @@ impl GameObject {
         // stub
     }
 
+    /// Sets the material of the object.
+    pub fn set_material(&self, material: &Material) {
+        // stub
+    }
+
     /// Deletes the object from the scene. If this object handle was cloned, all other instances are
     /// also invalid. They may now point to nothing, or a different object.
     pub fn delete(&self) {
