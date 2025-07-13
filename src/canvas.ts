@@ -4,14 +4,20 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { supabase } from "./auth/supabase";
 import { Machine } from "./models";
 import { showCallout } from "./callout";
+import { getRootElement } from "./dom-utils";
 
-const canvas = document.querySelector("canvas")!;
-if (!canvas) throw new Error("No canvas element found.");
+function getCanvas(): HTMLCanvasElement {
+  const root = getRootElement();
+  const canvas = root.querySelector("canvas")! as HTMLCanvasElement;
+  if (!canvas) throw new Error("No canvas element found.");
+  return canvas;
+}
 
 const raycaster = new THREE.Raycaster();
 
 var machines: Record<number, Machine> = {};
 
+const canvas = getCanvas();
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);

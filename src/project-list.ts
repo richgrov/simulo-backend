@@ -1,7 +1,11 @@
 import { supabase } from "./auth/supabase";
 import { escape } from "./ui";
+import { getRootElement } from "./dom-utils";
 
-const projectList = document.getElementById("project-list")!;
+function getProjectListElement(): HTMLElement {
+  const root = getRootElement();
+  return root.querySelector("#project-list")! as HTMLElement;
+}
 
 interface Project {
   id: string;
@@ -16,6 +20,7 @@ export async function init() {
   }
 
   const projects = await fetchProjects(data.user.id);
+  const projectList = getProjectListElement();
   projectList.innerHTML = "";
 
   for (const { id, name } of projects) {
