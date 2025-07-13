@@ -3,9 +3,10 @@
 ## What Was Accomplished
 
 ### 1. React Setup
-- ✅ Installed React, React DOM, and TypeScript types
+- ✅ Installed React, React DOM, and TypeScript types using bun
 - ✅ Updated `tsconfig.json` to support JSX compilation
 - ✅ Created root React component structure
+- ✅ Configured project to use bun instead of npm
 
 ### 2. Root Component Architecture
 - ✅ Created `src/App.tsx` - Main React component containing all the existing HTML structure
@@ -57,7 +58,7 @@ Now that the foundation is in place, you can continue with:
 
 The development server should now run with:
 ```bash
-npm run dev
+bun run dev
 ```
 
 All existing functionality should work exactly as before, but now running through React.
