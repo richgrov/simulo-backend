@@ -58,35 +58,19 @@ impl GameObject {
     /// Creates and spawns a new object with the given viewport position and material. It starts at
     // a 1x1 pixel scale, so you must likely want to rescale it to something bigger with
     // \`GameObject::set_scale()\`.
-    pub fn new(position: glam::Vec2, material: &Material) -> Self {
-        // stub
-    }
+    pub fn new(position: glam::Vec2, material: &Material) -> Self { /* stub */ }
 
-    /// Gets the position of the object in viewport pixels.
-    pub fn position(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn position(&self) -> glam::Vec2 { /* stub */ }
 
-    /// Sets the position of the object in the viewport.
-    pub fn set_position(&self, pos: glam::Vec2) {
-        // stub
-    }
+    pub fn set_position(&self, pos: glam::Vec2) { /* stub */ }
 
-    /// Sets the scale of the object in the viewport.
-    pub fn set_scale(&self, scale: glam::Vec2) {
-        // stub
-    }
+    pub fn set_scale(&self, scale: glam::Vec2) { /* stub */ }
 
-    /// Sets the material of the object.
-    pub fn set_material(&self, material: &Material) {
-        // stub
-    }
+    pub fn set_material(&self, material: &Material) { /* stub */ }
 
     /// Deletes the object from the scene. If this object handle was cloned, all other instances are
     /// also invalid. They may now point to nothing, or a different object.
-    pub fn delete(&self) {
-        // stub
-    }
+    pub fn delete(&self) { /* stub */ }
 }
 
 // A material changes the color of an object.
@@ -96,9 +80,7 @@ impl Material {
     // Create a material that flat-shades all its objects with a given color.
     // Creating materials is not super fast, and should not be done often. Strive to reuse materials
     // and create them at the beginning of the program.
-    pub fn new(r: f32, g: f32, b: f32) -> Self {
-        // stub
-    }
+    pub fn new(r: f32, g: f32, b: f32) -> Self { /* stub */ }
 }
 
 /// A detected pose complete with (x, y) screen coordinates for various body points. Use the
@@ -107,84 +89,46 @@ impl Material {
 pub struct Pose(/* stub */);
 
 impl Pose {
-    pub fn nose(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn nose(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_eye(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_eye(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_eye(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_eye(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_ear(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_ear(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_ear(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_ear(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_shoulder(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_shoulder(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_shoulder(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_shoulder(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_elbow(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_elbow(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_elbow(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_elbow(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_wrist(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_wrist(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_wrist(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_wrist(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_hip(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_hip(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_hip(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_hip(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_knee(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_knee(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_knee(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_knee(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn left_ankle(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn left_ankle(&self) -> glam::Vec2 { /* stub */ }
 
-    pub fn right_ankle(&self) -> glam::Vec2 {
-        // stub
-    }
+    pub fn right_ankle(&self) -> glam::Vec2 { /* stub */ }
 }
 
 /// Returns a evenly distributed random float in range [0, 1).
-pub fn random_float() -> f32 {
-    // stub
-}
+pub fn random_float() -> f32 { /* stub */ }
 
 /// Gets the size of the window in pixels.
-pub fn window_size() -> glam::IVec2 {
-    // stub
-}
+pub fn window_size() -> glam::IVec2 { /* stub */ }
 \`\`\`
 `;
 
