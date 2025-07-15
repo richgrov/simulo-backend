@@ -11,11 +11,30 @@ const editorControls = document.querySelector(
 )! as HTMLElement;
 
 let projectId: string;
+let websocket: WebSocket | undefined;
 
 export function init(project: string) {
   projectId = project;
   editorControls.style["display"] = "flex";
   canvas.init(projectId);
+
+  if (!websocket) {
+    websocket = new WebSocket(import.meta.env.VITE_BACKEND);
+    websocket.onopen = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      websocket!.send(data.session!.access_token!);
+    };
+
+    websocket.onclose = (event) => {
+      websocket = undefined;
+      console.log("WebSocket closed", event.code, event.reason);
+    };
+  }
 }
 
 const promptSubmitBtn = document.querySelector(
