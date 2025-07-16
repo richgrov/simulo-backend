@@ -152,3 +152,35 @@ a {
     background-color: rgba(100, 0, 0, 0.8);
     border-right: 3px solid red;
 }
+
+#file-drop-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 4rem;
+}
+
+#file-drop-overlay p {
+  margin: 0;
+}
+
+#prompt-images {
+  display: flex;
+  overflow-x: scroll;
+  gap: 8px;
+}
+
+#prompt-images img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid #aaa;
+  box-sizing: border-box;
+}

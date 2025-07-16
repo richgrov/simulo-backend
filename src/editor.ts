@@ -3,13 +3,13 @@ import * as ui from "./ui";
 import * as canvas from "./canvas";
 import { RetryWebsocket } from "./websocket";
 
-const promptInput = document.querySelector(
-  "#prompt-input",
-)! as HTMLTextAreaElement;
-const promptMessage = document.querySelector("#prompt-message")! as HTMLElement;
-const editorControls = document.querySelector(
-  "#editor-controls",
-)! as HTMLElement;
+const promptInput =
+  document.querySelector<HTMLTextAreaElement>("#prompt-input")!;
+const promptMessage = document.querySelector<HTMLElement>("#prompt-message")!;
+const editorControls = document.querySelector<HTMLElement>("#editor-controls")!;
+const fileDropOverlay =
+  document.querySelector<HTMLElement>("#file-drop-overlay")!;
+const promptImages = document.querySelector<HTMLElement>("#prompt-images")!;
 
 let projectId: string;
 let websocket: RetryWebsocket | undefined;
@@ -95,5 +95,48 @@ promptSubmitBtn.addEventListener("click", async () => {
     );
   } finally {
     stopAnimation();
+  }
+});
+
+document.addEventListener("dragenter", (event) => {
+  if (typeof websocket === "undefined") {
+    return;
+  }
+
+  event.preventDefault();
+  setTimeout(() => {
+    fileDropOverlay.style.display = "flex";
+  }, 0);
+});
+
+document.addEventListener("dragover", (event) => {
+  event.preventDefault();
+});
+
+document.addEventListener("dragleave", (event) => {
+  if (typeof websocket === "undefined") {
+    return;
+  }
+
+  event.preventDefault();
+  fileDropOverlay.style.display = "none";
+});
+
+document.addEventListener("drop", (event) => {
+  if (typeof websocket === "undefined") {
+    return;
+  }
+
+  event.preventDefault();
+  fileDropOverlay.style.display = "none";
+
+  const files = event.dataTransfer?.files;
+  if (files) {
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+      const img = document.createElement("img");
+      img.src = url;
+      promptImages.appendChild(img);
+    }
   }
 });
