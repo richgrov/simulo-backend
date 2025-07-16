@@ -9,13 +9,7 @@ interface Project {
 }
 
 export async function init() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  const projects = await fetchProjects(data.user.id);
+  const projects = await fetchProjects();
   projectList.innerHTML = "";
 
   for (const { id, name } of projects) {
@@ -75,16 +69,22 @@ export async function init() {
   }
 }
 
-async function fetchProjects(userId: string): Promise<Project[]> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("owner", userId);
+async function fetchProjects(): Promise<Project[]> {
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
 
-  if (error) {
-    console.error(error);
-    return [];
+  if (sessionError) {
+    throw sessionError;
   }
 
-  return data;
+  const response = await fetch(import.meta.env.VITE_BACKEND + "/projects", {
+    headers: {
+      Authorization: sessionData.session!.access_token,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  return await response.json();
 }

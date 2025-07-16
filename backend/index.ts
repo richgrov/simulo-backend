@@ -121,11 +121,36 @@ async function handleAgentPost(req: Request): Promise<Response> {
   }
 }
 
+async function handleProjectsGet(req: Request): Promise<Response> {
+  const user = await authorize(req);
+  if (!user) {
+    return new Response("unauthorized", { status: 401, headers: corsHeaders });
+  }
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, name")
+    .eq("owner", user.id);
+  if (error) {
+    console.error("failed to fetch projects", error);
+    return new Response("internal server error", {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+
+  return new Response(JSON.stringify(data), { headers: corsHeaders });
+}
+
 const server = Bun.serve({
   routes: {
     "/project/:projectId/agent": {
       OPTIONS: () => new Response(null, { status: 204, headers: corsHeaders }),
       POST: handleAgentPost,
+    },
+    "/projects": {
+      OPTIONS: () => new Response(null, { status: 204, headers: corsHeaders }),
+      GET: handleProjectsGet,
     },
     "/": {
       GET: upgradeWebsocket,
