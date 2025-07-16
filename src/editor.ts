@@ -76,7 +76,7 @@ promptSubmitBtn.addEventListener("click", async () => {
       {
         method: "POST",
         headers: {
-          Authorization: `${data.session.access_token}`,
+          Authorization: data.session.access_token,
         },
         body: promptInput.value,
       },
