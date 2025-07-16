@@ -1,6 +1,7 @@
 import { supabase } from "./auth/supabase";
 import * as ui from "./ui";
 import * as canvas from "./canvas";
+import { RetryWebsocket } from "./websocket";
 
 const promptInput = document.querySelector(
   "#prompt-input",
@@ -11,42 +12,38 @@ const editorControls = document.querySelector(
 )! as HTMLElement;
 
 let projectId: string;
-let websocket: WebSocket | undefined;
+let websocket: RetryWebsocket | undefined;
 
 export function init(project: string) {
   projectId = project;
   editorControls.style["display"] = "flex";
 
   if (!websocket) {
-    websocket = new WebSocket(import.meta.env.VITE_BACKEND);
-    websocket.onopen = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error(error);
-        return;
-      }
+    websocket = new RetryWebsocket(
+      import.meta.env.VITE_BACKEND,
+      async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error(error);
+          return;
+        }
 
-      websocket!.send(data.session!.access_token! + "|" + projectId);
-    };
+        websocket!.send(data.session!.access_token! + "|" + projectId);
+      },
+      (event) => {
+        if (typeof event.data !== "string") {
+          console.error("Invalid message type", event.data);
+          return;
+        }
 
-    websocket.onmessage = (event) => {
-      if (typeof event.data !== "string") {
-        console.error("Invalid message type", event.data);
-        return;
-      }
-
-      const parts = event.data.split("|");
-      if (parts[0] === "scene") {
-        canvas.init(parts[1]);
-      } else if (parts[0] === "machineonline") {
-        canvas.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
-      }
-    };
-
-    websocket.onclose = (event) => {
-      websocket = undefined;
-      console.log("WebSocket closed", event.code, event.reason);
-    };
+        const parts = event.data.split("|");
+        if (parts[0] === "scene") {
+          canvas.init(parts[1]);
+        } else if (parts[0] === "machineonline") {
+          canvas.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
+        }
+      },
+    );
   }
 }
 
