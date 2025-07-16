@@ -181,12 +181,12 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
   }
 
   const scene = project.scene as string;
+  const sceneData = JSON.parse(scene);
   ws.sendText("scene|" + scene);
 
-  for (const entry of project.scene.split("\n")) {
-    const parts = entry.split(" ");
-    if (parts[0] === "machine") {
-      const machineId = parseInt(parts[7], 10);
+  for (const object of sceneData) {
+    if (object.type === "machine") {
+      const machineId = object.id;
       const machineOnline = onlineMachines.has(machineId);
       ws.sendText("machineonline|" + machineId + "|" + machineOnline);
     }

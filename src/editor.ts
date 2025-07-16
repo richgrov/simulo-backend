@@ -38,7 +38,9 @@ export function init(project: string) {
 
         const parts = event.data.split("|");
         if (parts[0] === "scene") {
-          canvas.init(parts[1]);
+          const sceneData = JSON.parse(parts[1]);
+          promptInput.value = sceneData[0].prompt;
+          canvas.init(sceneData);
         } else if (parts[0] === "machineonline") {
           canvas.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
         }

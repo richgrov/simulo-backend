@@ -206,22 +206,28 @@ window.onmousedown = (event) => {
   }
 };
 
-export async function init(sceneFile: string) {
+export async function init(sceneData: any[]) {
   for (const machine of Object.values(machines)) {
     machine.removeFromParent();
   }
   machines = {};
 
-  for (const line of sceneFile.split("\n")) {
-    const params = line.split(" ");
-    if (params[0] !== "machine") {
+  for (const obj of sceneData) {
+    if (obj.type !== "machine") {
       continue;
     }
 
-    const [x, y, z, xRot, yRot, zRot, id] = params.slice(1).map(Number);
-    const machine = new Machine(x, y, z, xRot, yRot, zRot, id);
+    const machine = new Machine(
+      obj.x,
+      obj.y,
+      obj.z,
+      obj.xRot,
+      obj.yRot,
+      obj.zRot,
+      obj.id,
+    );
     scene.add(machine);
-    machines[id] = machine;
+    machines[obj.id] = machine;
   }
 }
 

@@ -58,7 +58,7 @@ async function handleAgentPost(req: Request): Promise<Response> {
 
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
-    .select("id, deployments ( source, created_at )")
+    .select("id, scene, deployments ( source, created_at )")
     .eq("id", projectId)
     .order("created_at", { ascending: false })
     .single();
@@ -78,8 +78,23 @@ async function handleAgentPost(req: Request): Promise<Response> {
     });
   }
 
+  const sceneData = JSON.parse(projectData.scene);
+  sceneData[0].prompt = prompt;
+  const { error: updateError } = await supabase
+    .from("projects")
+    .update({ scene: JSON.stringify(sceneData) })
+    .eq("id", projectId);
+
+  if (updateError) {
+    console.error("failed to update project", updateError);
+    return new Response("internal server error", {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
+
   const source = projectData.deployments[0]?.source || "";
-  const code = await generateRustCode(query, source);
+  const code = await generateRustCode(prompt, source);
 
   try {
     const processed = await compileQueue.enqueue(
