@@ -16,7 +16,6 @@ let websocket: WebSocket | undefined;
 export function init(project: string) {
   projectId = project;
   editorControls.style["display"] = "flex";
-  canvas.init(projectId);
 
   if (!websocket) {
     websocket = new WebSocket(import.meta.env.VITE_BACKEND);
@@ -27,7 +26,21 @@ export function init(project: string) {
         return;
       }
 
-      websocket!.send(data.session!.access_token!);
+      websocket!.send(data.session!.access_token! + "|" + projectId);
+    };
+
+    websocket.onmessage = (event) => {
+      if (typeof event.data !== "string") {
+        console.error("Invalid message type", event.data);
+        return;
+      }
+
+      const parts = event.data.split("|");
+      if (parts[0] === "scene") {
+        canvas.init(parts[1]);
+      } else if (parts[0] === "machineonline") {
+        canvas.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
+      }
     };
 
     websocket.onclose = (event) => {

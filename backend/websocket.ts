@@ -13,12 +13,15 @@ interface Machine {
 interface User {
   type: "user";
   userId: string;
+  projectId: string;
 }
+
+const onlineMachines = new Set<number>();
 
 async function verifySignature(
   id: string,
   publicKeyPem: string,
-  signature: Buffer
+  signature: Buffer,
 ): Promise<boolean> {
   const messageEncoder = new TextEncoder();
   const message = messageEncoder.encode(id);
@@ -31,19 +34,14 @@ async function verifySignature(
       format: "pem",
       type: "spki",
     },
-    signature
+    signature,
   );
 }
 
 async function tryMachineAuth(
   ws: Bun.ServerWebSocket<unknown>,
-  message: Buffer
+  message: Buffer,
 ): Promise<number | undefined> {
-  if (!Buffer.isBuffer(message)) {
-    ws.close(4000);
-    return;
-  }
-
   if (message.length < 1 + 1 + 64 || message.length > 1 + 64 + 64) {
     ws.close(4001);
     return;
@@ -88,7 +86,7 @@ async function tryMachineAuth(
     const isValid = await verifySignature(
       idString,
       machineData.public_key,
-      signature
+      signature,
     );
 
     if (!isValid) {
@@ -106,16 +104,7 @@ async function tryMachineAuth(
     machineId,
   };
 
-  const { error: machineError } = await supabase
-    .from("machines")
-    .update({ status: "online" })
-    .eq("id", machineId);
-
-  if (machineError) {
-    console.error(machineError);
-    ws.close(1011);
-    return;
-  }
+  onlineMachines.add(machineId);
 
   const { data: deploymentData, error: deploymentError } = await supabase
     .from("machines")
@@ -150,7 +139,13 @@ async function tryMachineAuth(
 }
 
 async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
-  const { data, error } = await supabase.auth.getUser(message);
+  const parts = message.split("|");
+  if (parts.length !== 2) {
+    ws.close(4007);
+    return;
+  }
+
+  const { data, error } = await supabase.auth.getUser(parts[0]);
   if (error) {
     console.error(error);
     ws.close(4000);
@@ -160,12 +155,47 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
   (ws.data as WebsocketData) = {
     type: "user",
     userId: data.user.id,
+    projectId: parts[1]!,
   };
+
+  const { data: projectData, error: projectError } = await supabase
+    .from("projects")
+    .select("owner, scene")
+    .eq("id", parts[1]!)
+    .limit(1);
+
+  if (projectError) {
+    console.error(projectError);
+    return;
+  }
+
+  if (projectData.length === 0) {
+    ws.close(4009);
+    return;
+  }
+
+  const project = projectData[0]!;
+  if (project.owner !== data.user.id) {
+    ws.close(4008);
+    return;
+  }
+
+  const scene = project.scene as string;
+  ws.sendText("scene|" + scene);
+
+  for (const entry of project.scene.split("\n")) {
+    const parts = entry.split(" ");
+    if (parts[0] === "machine") {
+      const machineId = parseInt(parts[7], 10);
+      const machineOnline = onlineMachines.has(machineId);
+      ws.sendText("machineonline|" + machineId + "|" + machineOnline);
+    }
+  }
 }
 
 export function upgradeWebsocket(
   req: Request,
-  server: Bun.Server
+  server: Bun.Server,
 ): Response | void {
   if (server.upgrade(req, { data: undefined })) {
     return;
@@ -198,14 +228,7 @@ export const websocket = {
     const data = ws.data as WebsocketData;
 
     if (data?.type === "machine") {
-      const { error } = await supabase
-        .from("machines")
-        .update({ status: "offline" })
-        .eq("id", data.machineId);
-
-      if (error) {
-        console.error(error);
-      }
+      onlineMachines.delete(data.machineId);
     }
   },
 };

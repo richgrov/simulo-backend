@@ -206,29 +206,13 @@ window.onmousedown = (event) => {
   }
 };
 
-export async function init(projectId: string) {
+export async function init(sceneFile: string) {
   for (const machine of Object.values(machines)) {
     machine.removeFromParent();
   }
   machines = {};
 
-  const { data, error } = await supabase
-    .from("projects")
-    .select("scene")
-    .eq("id", projectId)
-    .limit(1);
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  const row = data[0];
-  if (!row || typeof row.scene !== "string") {
-    return;
-  }
-
-  for (const line of row.scene.split("\n")) {
+  for (const line of sceneFile.split("\n")) {
     const params = line.split(" ");
     if (params[0] !== "machine") {
       continue;
@@ -239,23 +223,13 @@ export async function init(projectId: string) {
     scene.add(machine);
     machines[id] = machine;
   }
+}
 
-  const { data: machinesData, error: machinesError } = await supabase
-    .from("machines")
-    .select("id, status")
-    .eq("project", projectId);
-
-  if (machinesError) {
-    console.error(machinesError);
+export function setMachineOnline(machineId: number, online: boolean) {
+  const machine = machines[machineId];
+  if (!machine) {
     return;
   }
 
-  for (const machineData of machinesData) {
-    const machine = machines[machineData.id];
-    if (!machine) {
-      continue;
-    }
-
-    machine.status = machineData.status;
-  }
+  machine.status = online ? "online" : "offline";
 }
