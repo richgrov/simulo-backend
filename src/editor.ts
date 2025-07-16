@@ -98,15 +98,25 @@ promptSubmitBtn.addEventListener("click", async () => {
   }
 });
 
+let dragStack = 0;
+
+function updateDragIndicator() {
+  if (dragStack > 0) {
+    fileDropOverlay.style.display = "flex";
+  } else {
+    fileDropOverlay.style.display = "none";
+  }
+}
+
 document.addEventListener("dragenter", (event) => {
   if (typeof websocket === "undefined") {
     return;
   }
 
   event.preventDefault();
-  setTimeout(() => {
-    fileDropOverlay.style.display = "flex";
-  }, 0);
+
+  dragStack++;
+  setTimeout(updateDragIndicator, 0);
 });
 
 document.addEventListener("dragover", (event) => {
@@ -119,7 +129,9 @@ document.addEventListener("dragleave", (event) => {
   }
 
   event.preventDefault();
-  fileDropOverlay.style.display = "none";
+
+  dragStack--;
+  setTimeout(updateDragIndicator, 0);
 });
 
 document.addEventListener("drop", (event) => {
@@ -128,7 +140,8 @@ document.addEventListener("drop", (event) => {
   }
 
   event.preventDefault();
-  fileDropOverlay.style.display = "none";
+  dragStack--;
+  setTimeout(updateDragIndicator, 0);
 
   const files = event.dataTransfer?.files;
   if (files) {
