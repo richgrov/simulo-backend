@@ -40,22 +40,27 @@ export class Machine extends THREE.Object3D {
     );
 
     const cone = new THREE.Mesh(
-      new THREE.TetrahedronGeometry(0.75, 0),
+      new THREE.ConeGeometry(0.75, 1, 4),
       wireframeMaterial,
     );
-    cone.position.set(0, -1.25, 0);
-    cone.rotation.set(Math.PI / 5, 0, -Math.PI / 4);
+    cone.position.set(0, -1, 0);
+    cone.rotateY(Math.PI / 4);
     this.add(cone);
 
     const field = new THREE.Mesh(
-      new THREE.ConeGeometry(5, 9),
+      new THREE.ConeGeometry(5, 9, 4),
       new THREE.MeshBasicMaterial({
         color: 0xffffff,
         opacity: 0.5,
         transparent: true,
       }),
     );
-    field.position.set(0, -(9 / 2) - 0.5, 0);
+
+    field.matrixAutoUpdate = false;
+    const m = new THREE.Matrix4().makeScale(1.777, 1, 1);
+    m.multiply(new THREE.Matrix4().makeRotationY(Math.PI / 4));
+    m.multiply(new THREE.Matrix4().makeTranslation(0, -(9 / 2) - 0.5, 0));
+    field.matrix.copy(m);
     this.add(field);
   }
 
