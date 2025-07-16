@@ -40,8 +40,17 @@ async function handleAgentPost(req: Request): Promise<Response> {
     return new Response("not found", { status: 404, headers: corsHeaders });
   }
 
-  const query = (await req.text()).trim();
-  if (query.length < 1 || query.length > 1000) {
+  const formData = await req.formData();
+  const prompt = formData.get("prompt");
+  if (typeof prompt !== "string" || prompt.length < 1 || prompt.length > 1000) {
+    return new Response("bad request", {
+      status: 400,
+      headers: corsHeaders,
+    });
+  }
+
+  const images = formData.getAll("images");
+  if (images.length > 10 || !images.every((image) => image instanceof File)) {
     return new Response("bad request", {
       status: 400,
       headers: corsHeaders,

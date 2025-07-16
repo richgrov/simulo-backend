@@ -11,6 +11,8 @@ const fileDropOverlay =
   document.querySelector<HTMLElement>("#file-drop-overlay")!;
 const promptImages = document.querySelector<HTMLElement>("#prompt-images")!;
 
+const uploadedImages = new Array<File>();
+
 let projectId: string;
 let websocket: RetryWebsocket | undefined;
 
@@ -70,6 +72,12 @@ promptSubmitBtn.addEventListener("click", async () => {
   let stopAnimation = ui.loadingText(promptSubmitBtn);
 
   try {
+    const formData = new FormData();
+    formData.append("prompt", promptInput.value);
+    for (const file of uploadedImages) {
+      formData.append("images", file);
+    }
+
     const response = await fetch(
       import.meta.env.VITE_BACKEND + `/project/${projectId}/agent`,
       {
@@ -77,7 +85,7 @@ promptSubmitBtn.addEventListener("click", async () => {
         headers: {
           Authorization: data.session.access_token,
         },
-        body: promptInput.value,
+        body: formData,
       },
     );
 
@@ -152,6 +160,7 @@ document.addEventListener("drop", (event) => {
       const img = document.createElement("img");
       img.src = url;
       promptImages.appendChild(img);
+      uploadedImages.push(file);
     }
   }
 });
