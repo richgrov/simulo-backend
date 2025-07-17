@@ -106,6 +106,7 @@ async function tryMachineAuth(
   };
 
   onlineMachines.add(machineId);
+  console.log(`Machine ${machineId} authenticated from ${ws.remoteAddress}`);
 
   const { data: deploymentData, error: deploymentError } = await supabase
     .from("machines")
@@ -165,6 +166,8 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
     return;
   }
 
+  console.log(`User ${data.user.id} authenticated from ${ws.remoteAddress}`);
+
   (ws.data as WebsocketData) = {
     type: "user",
     userId: data.user.id,
@@ -223,6 +226,7 @@ export const websocket = {
 
     const notAuthenticated = data === undefined;
     if (notAuthenticated) {
+      console.log(`Attempting authentication of ${ws.remoteAddress}`);
       if (typeof message === "string") {
         tryUserAuth(ws, message);
       } else {
