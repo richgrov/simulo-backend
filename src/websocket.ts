@@ -2,7 +2,7 @@ export class RetryWebsocket {
   private websocket: WebSocket | undefined;
   private connecting = false;
   private hadError = false;
-  private connectDelay = 100;
+  private connectDelay = 250;
 
   constructor(
     private url: string,
@@ -19,6 +19,8 @@ export class RetryWebsocket {
 
     if (this.hadError) {
       this.connectDelay = Math.min(this.connectDelay * 2, 10 * 1000);
+    } else {
+      this.connectDelay = 250;
     }
 
     await new Promise((resolve) => setTimeout(resolve, this.connectDelay));
