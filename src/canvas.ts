@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-import { supabase } from "./auth/supabase";
 import { Machine } from "./models";
 import { showCallout } from "./callout";
 
