@@ -1,9 +1,9 @@
 import { type User } from "@supabase/supabase-js";
 import fs from "fs/promises";
-import { s3, write as s3Write } from "bun";
 
 import { JobQueue, finishJob } from "./job-queue";
 import { generateRustCode } from "./ai";
+import * as s3 from "./s3";
 import { supabase } from "./supabase";
 import { upgradeWebsocket, websocket } from "./websocket";
 
@@ -111,9 +111,8 @@ async function handleAgentPost(req: Request): Promise<Response> {
     );
 
     try {
-      const s3File = s3.file(processed.id);
       const content = await fs.readFile(processed.wasmPath);
-      await s3Write(s3File, content);
+      await s3.uploadFile(processed.id, content);
     } catch (error) {
       console.error("wasm upload failed", error);
       return new Response("internal server error", {

@@ -1,7 +1,8 @@
 import * as crypto from "crypto";
-import { s3 } from "bun";
 
+import * as s3 from "./s3";
 import { supabase } from "./supabase";
+import { Packet } from "./packet";
 
 type WebsocketData = Machine | User | undefined;
 
@@ -130,12 +131,24 @@ async function tryMachineAuth(
     return;
   }
 
-  const url = s3.file(objectId).presign({
-    acl: "public-read",
-    expiresIn: 60 * 20,
-  });
+  const [programUrl, programHash] = await Promise.all([
+    s3.presignUrl(objectId, 60 * 10),
+    s3.getHash(objectId),
+  ]);
 
-  ws.sendText(url);
+  const assets = new Array();
+
+  const packet = new Packet();
+  packet.u8(0);
+  packet.string(programUrl);
+  packet.bytes(programHash);
+  packet.u8(assets.length);
+  for (const asset of assets) {
+    packet.string(asset.url);
+    packet.bytes(asset.hash);
+  }
+
+  ws.sendBinary(packet.toBuffer());
 }
 
 async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
