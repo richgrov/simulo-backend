@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 
 import * as s3 from "./s3";
 import { supabase } from "./supabase";
-import { Packet } from "./packet";
+import { Packet, PacketReader } from "../util/packet";
 
 type WebsocketData = Machine | User | undefined;
 
@@ -166,14 +166,6 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
     return;
   }
 
-  console.log(`User ${data.user.id} authenticated from ${ws.remoteAddress}`);
-
-  (ws.data as WebsocketData) = {
-    type: "user",
-    userId: data.user.id,
-    projectId: parts[1]!,
-  };
-
   const { data: projectData, error: projectError } = await supabase
     .from("projects")
     .select("owner, scene")
@@ -196,6 +188,14 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
     return;
   }
 
+  (ws.data as WebsocketData) = {
+    type: "user",
+    userId: data.user.id,
+    projectId: parts[1]!,
+  };
+
+  console.log(`User ${data.user.id} authenticated from ${ws.remoteAddress}`);
+
   const scene = project.scene as string;
   const sceneData = JSON.parse(scene);
   ws.sendText("scene|" + scene);
@@ -206,6 +206,95 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
       const machineOnline = onlineMachines.has(machineId);
       ws.sendText("machineonline|" + machineId + "|" + machineOnline);
     }
+  }
+
+  for (const image of sceneData[0].promptImages) {
+    const url = await s3.presignUrl(image, 60 * 5);
+    const response = new Packet();
+    response.u8(1);
+    response.string(url);
+    ws.sendBinary(response.toBuffer());
+  }
+}
+
+async function handleUserMessage(
+  ws: Bun.ServerWebSocket<unknown>,
+  message: string | Buffer,
+) {
+  const userData = ws.data as User;
+  if (!Buffer.isBuffer(message)) {
+    ws.close(4010);
+    return;
+  }
+
+  if (message.length < 1) {
+    ws.close(4011);
+    return;
+  }
+
+  const reader = new PacketReader(message.buffer as ArrayBuffer);
+  const id = reader.u8();
+  if (id === undefined) {
+    ws.close(4012);
+    return;
+  }
+
+  switch (id) {
+    case 0:
+      const fileCount = reader.u8();
+      if (fileCount === undefined) {
+        ws.close(4014);
+        return;
+      }
+
+      for (let i = 0; i < fileCount; i++) {
+        const data = reader.dynbytes();
+        if (data === undefined) {
+          ws.close(4015);
+          return;
+        }
+
+        const { data: projectData, error: projectError } = await supabase
+          .from("projects")
+          .select("id, scene")
+          .eq("id", userData.projectId)
+          .single();
+
+        if (projectError) {
+          console.error(projectError);
+          ws.close(4016);
+          return;
+        }
+
+        const id = Bun.randomUUIDv7();
+
+        const scene = JSON.parse(projectData.scene);
+        scene[0].promptImages.push(id);
+
+        await s3.uploadFile(id, Buffer.from(data));
+        const url = await s3.presignUrl(id, 60 * 5);
+
+        const { error: updateError } = await supabase
+          .from("projects")
+          .update({ scene: JSON.stringify(scene) })
+          .eq("id", userData.projectId);
+
+        if (updateError) {
+          console.error(updateError);
+          ws.close(4017);
+          return;
+        }
+
+        const response = new Packet();
+        response.u8(1);
+        response.string(url);
+        ws.sendBinary(response.toBuffer());
+      }
+      break;
+
+    default:
+      ws.close(4013);
+      return;
   }
 }
 
@@ -238,7 +327,7 @@ export const websocket = {
     if (data.type === "machine") {
       console.log(`[machine ${data.machineId}]`, message);
     } else {
-      console.log(`[user ${data.userId}]`, message);
+      handleUserMessage(ws, message);
     }
   },
   async close(ws: Bun.ServerWebSocket<unknown>) {

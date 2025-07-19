@@ -29,6 +29,7 @@ export class RetryWebsocket {
     this.connecting = true;
     this.hadError = false;
     this.websocket = new WebSocket(this.url);
+    this.websocket.binaryType = "arraybuffer";
     this.websocket.onmessage = this.onMessage;
     this.websocket.onopen = () => {
       console.log("WS connected");
@@ -45,7 +46,7 @@ export class RetryWebsocket {
     };
   }
 
-  send(message: string | Buffer) {
+  send(message: string | Buffer | ArrayBuffer) {
     if (!this.websocket) {
       return;
     }

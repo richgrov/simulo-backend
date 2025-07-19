@@ -2,6 +2,7 @@ import { supabase } from "./auth/supabase";
 import * as ui from "./ui";
 import * as canvas from "./canvas";
 import { RetryWebsocket } from "./websocket";
+import { Packet, PacketReader } from "../util/packet";
 
 const promptInput =
   document.querySelector<HTMLTextAreaElement>("#prompt-input")!;
@@ -33,18 +34,29 @@ export function init(project: string) {
         websocket!.send(data.session!.access_token! + "|" + projectId);
       },
       (event) => {
-        if (typeof event.data !== "string") {
+        if (event.data instanceof ArrayBuffer) {
+          const reader = new PacketReader(event.data);
+          const id = reader.u8();
+          if (id === 1) {
+            const url = reader.string();
+            promptImages.innerHTML += `<img src="${url}" alt="uploaded image" />`;
+          } else {
+            console.error("Invalid message ID", id);
+          }
+        } else if (typeof event.data === "string") {
+          const parts = event.data.split("|");
+          if (parts[0] === "scene") {
+            const sceneData = JSON.parse(parts[1]);
+            promptInput.value = sceneData[0].prompt;
+            canvas.init(sceneData);
+          } else if (parts[0] === "machineonline") {
+            canvas.setMachineOnline(
+              parseInt(parts[1], 10),
+              parts[2] === "true",
+            );
+          }
+        } else {
           console.error("Invalid message type", event.data);
-          return;
-        }
-
-        const parts = event.data.split("|");
-        if (parts[0] === "scene") {
-          const sceneData = JSON.parse(parts[1]);
-          promptInput.value = sceneData[0].prompt;
-          canvas.init(sceneData);
-        } else if (parts[0] === "machineonline") {
-          canvas.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
         }
       },
     );
@@ -144,7 +156,7 @@ document.addEventListener("dragleave", (event) => {
   setTimeout(updateDragIndicator, 0);
 });
 
-document.addEventListener("drop", (event) => {
+document.addEventListener("drop", async (event) => {
   if (typeof websocket === "undefined") {
     return;
   }
@@ -154,13 +166,21 @@ document.addEventListener("drop", (event) => {
   setTimeout(updateDragIndicator, 0);
 
   const files = event.dataTransfer?.files;
-  if (files) {
-    for (const file of files) {
-      const url = URL.createObjectURL(file);
-      const img = document.createElement("img");
-      img.src = url;
-      promptImages.appendChild(img);
-      uploadedImages.push(file);
-    }
+  if (!files) {
+    return;
   }
+
+  const fileData = await Promise.all(
+    Array.from(files).map((file) => file.arrayBuffer()),
+  );
+
+  const packet = new Packet();
+  packet.u8(0);
+  packet.u8(fileData.length);
+
+  for (const data of fileData) {
+    packet.dynbytes(new Uint8Array(data));
+  }
+
+  websocket.send(packet.toBuffer());
 });
