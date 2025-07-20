@@ -1,6 +1,6 @@
-import Together from "together-ai";
+import Groq from "groq-sdk";
 
-const ai = new Together();
+const ai = new Groq();
 
 export const AI_INSTRUCTIONS = `\
 You are an assistant that writes Rust code for creating interactive projection mapping experiences. \
@@ -159,7 +159,7 @@ export class CodeConversation {
   async generate() {
     const response = await ai.chat.completions.create({
       messages: this.messages,
-      model: "deepseek-ai/DeepSeek-V3",
+      model: "moonshotai/kimi-k2-instruct",
       temperature: 0.2,
     });
 
