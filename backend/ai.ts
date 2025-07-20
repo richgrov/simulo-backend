@@ -73,15 +73,19 @@ impl GameObject {
     pub fn delete(&self) { /* stub */ }
 }
 
-// A material changes the color of an object.
+/// A material changes the color of an object.
 pub struct Material(/* stub */);
 
 impl Material {
-    // Create a material that flat-shades all its objects with a given color.
-    // Creating materials is not super fast, and should not be done often. Strive to reuse materials
-    // and create them at the beginning of the program.
-    pub fn new(r: f32, g: f32, b: f32) -> Self { /* stub */ }
+    /// Creates a material with a given texture and color tint.
+    /// Creating materials is not super fast, and should not be done often. Strive to reuse materials
+    /// and create them at the beginning of the program.
+    pub fn new(image_id: u32, r: f32, g: f32, b: f32) -> Self { /* stub */ }
 }
+
+/// Utility for creating solid-colored objects. A 1x1 pixel image that, when tinted, will appear
+/// exactly as the material color.
+pub const WHITE_PIXEL_IMAGE: u32 = /* stub */;
 
 /// A detected pose complete with (x, y) screen coordinates for various body points. Use the
 /// relevant getter functions to access the coordinates.
