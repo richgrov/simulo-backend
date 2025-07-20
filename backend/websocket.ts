@@ -110,7 +110,7 @@ async function tryMachineAuth(
 
   const { data: deploymentData, error: deploymentError } = await supabase
     .from("machines")
-    .select("id, projects(deployments(compiled_object, created_at))")
+    .select("id, projects(scene, deployments(compiled_object, created_at))")
     .eq("id", machineId)
     .order("created_at", {
       ascending: false,
@@ -125,28 +125,27 @@ async function tryMachineAuth(
   }
 
   // Supabase incorrectly types this as an array when it's a 1-1 relationship
-  const objectId = reinterpretSingle(deploymentData.projects).deployments[0]
-    ?.compiled_object;
+  const project = reinterpretSingle(deploymentData.projects);
+  const objectId = project.deployments[0]?.compiled_object;
   if (!objectId) {
     ws.close(4006);
     return;
   }
 
-  const [programUrl, programHash] = await Promise.all([
-    s3.presignUrl(objectId, 60 * 10),
-    s3.getHash(objectId),
-  ]);
+  const scene = JSON.parse(project.scene);
 
-  const assets = new Array();
+  const files = [objectId, ...scene[0].promptImages];
+  const urls = await Promise.all(files.map((id) => s3.presignUrl(id, 60 * 5)));
+  const hashes = await Promise.all(files.map((id) => s3.getHash(id)));
 
   const packet = new Packet();
   packet.u8(0);
-  packet.string(programUrl);
-  packet.bytes(programHash);
-  packet.u8(assets.length);
-  for (const asset of assets) {
-    packet.string(asset.url);
-    packet.bytes(asset.hash);
+  packet.string(urls[0]!);
+  packet.bytes(hashes[0]!);
+  packet.u8(urls.length - 1);
+  for (let i = 1; i < urls.length; i++) {
+    packet.string(urls[i]!);
+    packet.bytes(hashes[i]!);
   }
 
   ws.sendBinary(packet.toBuffer());
