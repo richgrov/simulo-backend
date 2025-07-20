@@ -20,11 +20,17 @@ interface Job {
   reject: (e: unknown) => void;
 }
 
-export interface JobResult {
-  id: string;
-  directory: string;
-  wasmPath: string;
-}
+export type JobResult =
+  | {
+      success: true;
+      id: string;
+      directory: string;
+      wasmPath: string;
+    }
+  | {
+      success: false;
+      output: string;
+    };
 
 export class JobQueue {
   private queue: Job[] = [];
@@ -73,6 +79,11 @@ crate-type = ["cdylib"]`,
     } catch (err: any) {
       const stderr = err?.stderr ?? "";
       await fs.rm(dir, { recursive: true, force: true });
+
+      if (stderr) {
+        return { success: false, output: stderr };
+      }
+
       throw new Error(`compile failed: ${stderr}`);
     }
 
@@ -85,7 +96,7 @@ crate-type = ["cdylib"]`,
     );
 
     console.log(`Job ${id} completed`);
-    return { id, directory: dir, wasmPath };
+    return { success: true, id, directory: dir, wasmPath };
   }
 
   private async process() {
@@ -111,5 +122,7 @@ crate-type = ["cdylib"]`,
 }
 
 export function finishJob(job: JobResult) {
-  fs.rm(job.directory, { recursive: true, force: true });
+  if (job.success) {
+    fs.rm(job.directory, { recursive: true, force: true });
+  }
 }

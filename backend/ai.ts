@@ -132,17 +132,19 @@ pub fn window_size() -> glam::IVec2 { /* stub */ }
 \`\`\`
 `;
 
-export async function generateRustCode(
-  query: string,
-  existingCode: string,
-): Promise<string> {
-  let input = query;
-  if (existingCode.trim() !== "") {
-    input = `Rewrite the following Rust code according to the request:\n\`\`\`rust\n${existingCode}\n\`\`\`\n\nQuery: ${query}`;
-  }
+export class CodeConversation {
+  private messages: {
+    role: "system" | "user" | "assistant";
+    content: string;
+  }[];
 
-  const response = await ai.chat.completions.create({
-    messages: [
+  constructor(query: string, existingCode: string) {
+    let input = query;
+    if (existingCode.trim() !== "") {
+      input = `Rewrite the following Rust code according to the request:\n\`\`\`rust\n${existingCode}\n\`\`\`\n\nQuery: ${query}`;
+    }
+
+    this.messages = [
       {
         role: "system",
         content: AI_INSTRUCTIONS,
@@ -151,15 +153,37 @@ export async function generateRustCode(
         role: "user",
         content: input,
       },
-    ],
-    model: "deepseek-ai/DeepSeek-V3",
-    temperature: 0.2,
-  });
+    ];
+  }
 
-  const text = response.choices[0]?.message?.content ?? "";
-  console.log("AI said:", text);
+  async generate() {
+    const response = await ai.chat.completions.create({
+      messages: this.messages,
+      model: "deepseek-ai/DeepSeek-V3",
+      temperature: 0.2,
+    });
 
-  const codeBlockStart = text.indexOf("```rust") + 7;
-  const codeBlockEnd = text.indexOf("```", codeBlockStart);
-  return text.substring(codeBlockStart, codeBlockEnd);
+    const message = response.choices[0]?.message;
+    if (!message || !message.content) {
+      throw new Error("No message received");
+    }
+
+    const text = message.content.trim();
+
+    this.messages.push({
+      role: "assistant",
+      content: text,
+    });
+
+    const codeBlockStart = text.indexOf("```rust") + 7;
+    const codeBlockEnd = text.indexOf("```", codeBlockStart);
+    return text.substring(codeBlockStart, codeBlockEnd);
+  }
+
+  reportError(error: string) {
+    this.messages.push({
+      role: "user",
+      content: `An error occurred. Produce a new code block in the same format as described in the instructions based on this error: ${error}`,
+    });
+  }
 }

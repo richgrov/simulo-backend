@@ -2,7 +2,7 @@ import { type User } from "@supabase/supabase-js";
 import fs from "fs/promises";
 
 import { JobQueue, finishJob } from "./job-queue";
-import { generateRustCode } from "./ai";
+import { CodeConversation } from "./ai";
 import * as s3 from "./s3";
 import { supabase } from "./supabase";
 import { upgradeWebsocket, websocket } from "./websocket";
@@ -103,16 +103,35 @@ async function handleAgentPost(req: Request): Promise<Response> {
   }
 
   const source = projectData.deployments[0]?.source || "";
-  const code = await generateRustCode(prompt, source);
 
-  try {
-    const processed = await compileQueue.enqueue(
+  const conversation = new CodeConversation(prompt, source);
+  let result;
+  let code;
+  for (let i = 0; i < 2; i++) {
+    code = await conversation.generate();
+    console.log("AI said:", code);
+
+    const compileResult = await compileQueue.enqueue(
       "use crate::simulo::*;\n" + code,
     );
 
+    if (compileResult.success) {
+      result = compileResult;
+      break;
+    }
+
+    conversation.reportError(compileResult.output);
+    console.warn("Compile error:", compileResult.output);
+  }
+
+  if (!result) {
+    return new Response("job failed", { status: 500, headers: corsHeaders });
+  }
+
+  try {
     try {
-      const content = await fs.readFile(processed.wasmPath);
-      await s3.uploadFile(processed.id, content);
+      const content = await fs.readFile(result.wasmPath);
+      await s3.uploadFile(result.id, content);
     } catch (error) {
       console.error("wasm upload failed", error);
       return new Response("internal server error", {
@@ -120,13 +139,13 @@ async function handleAgentPost(req: Request): Promise<Response> {
         headers: corsHeaders,
       });
     } finally {
-      finishJob(processed);
+      finishJob(result);
     }
 
     const { error: insertError } = await supabase.from("deployments").insert({
       project_id: projectId,
       source: code,
-      compiled_object: processed.id,
+      compiled_object: result.id,
     });
 
     if (insertError) {
