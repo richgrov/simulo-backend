@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import { sql } from "bun";
 
 import * as s3 from "./s3";
 import { supabase } from "./supabase";
@@ -66,18 +67,18 @@ async function tryMachineAuth(
     return;
   }
 
-  const { data: machineData, error } = await supabase
-    .from("machines")
-    .select("public_key")
-    .eq("id", machineId)
-    .single();
+  const machineRows = await sql`
+    SELECT public_key
+    FROM machines
+    WHERE id = ${machineId}
+  `;
 
-  if (error) {
-    console.error(error);
+  if (machineRows.length === 0) {
     ws.close(1011);
     return;
   }
 
+  const machineData = machineRows[0];
   if (typeof machineData.public_key !== "string") {
     ws.close(4004);
     return;
@@ -108,25 +109,23 @@ async function tryMachineAuth(
   onlineMachines.add(machineId);
   console.log(`Machine ${machineId} authenticated from ${ws.remoteAddress}`);
 
-  const { data: deploymentData, error: deploymentError } = await supabase
-    .from("machines")
-    .select("id, projects(scene, deployments(compiled_object, created_at))")
-    .eq("id", machineId)
-    .order("created_at", {
-      ascending: false,
-      referencedTable: "projects.deployments",
-    })
-    .single();
+  const deploymentRows = await sql`
+    SELECT p.scene, d.compiled_object
+    FROM machines m
+    JOIN projects p ON p.id = m.project
+    JOIN deployments d ON d.project_id = p.id
+    WHERE m.id = ${machineId}
+    ORDER BY d.created_at DESC
+    LIMIT 1
+  `;
 
-  if (deploymentError) {
-    console.error(deploymentError);
+  if (deploymentRows.length === 0) {
     ws.close(1011);
     return;
   }
 
-  // Supabase incorrectly types this as an array when it's a 1-1 relationship
-  const project = reinterpretSingle(deploymentData.projects);
-  const objectId = project.deployments[0]?.compiled_object;
+  const project = deploymentRows[0];
+  const objectId = project.compiled_object;
   if (!objectId) {
     ws.close(4006);
     return;
@@ -165,23 +164,19 @@ async function tryUserAuth(ws: Bun.ServerWebSocket<unknown>, message: string) {
     return;
   }
 
-  const { data: projectData, error: projectError } = await supabase
-    .from("projects")
-    .select("owner, scene")
-    .eq("id", parts[1]!)
-    .limit(1);
+  const projectRows = await sql`
+    SELECT owner, scene
+    FROM projects
+    WHERE id = ${parts[1]!}
+    LIMIT 1
+  `;
 
-  if (projectError) {
-    console.error(projectError);
-    return;
-  }
-
-  if (projectData.length === 0) {
+  if (projectRows.length === 0) {
     ws.close(4009);
     return;
   }
 
-  const project = projectData[0]!;
+  const project = projectRows[0];
   if (project.owner !== data.user.id) {
     ws.close(4008);
     return;
@@ -253,17 +248,18 @@ async function handleUserMessage(
           return;
         }
 
-        const { data: projectData, error: projectError } = await supabase
-          .from("projects")
-          .select("id, scene")
-          .eq("id", userData.projectId)
-          .single();
+        const projectRows = await sql`
+          SELECT id, scene
+          FROM projects
+          WHERE id = ${userData.projectId}
+        `;
 
-        if (projectError) {
-          console.error(projectError);
+        if (projectRows.length === 0) {
           ws.close(4016);
           return;
         }
+
+        const projectData = projectRows[0];
 
         const id = Bun.randomUUIDv7();
 
@@ -273,16 +269,11 @@ async function handleUserMessage(
         await s3.uploadFile(id, Buffer.from(data));
         const url = await s3.presignUrl(id, 60 * 5);
 
-        const { error: updateError } = await supabase
-          .from("projects")
-          .update({ scene: JSON.stringify(scene) })
-          .eq("id", userData.projectId);
-
-        if (updateError) {
-          console.error(updateError);
-          ws.close(4017);
-          return;
-        }
+        await sql`
+          UPDATE projects
+          SET scene = ${JSON.stringify(scene)}
+          WHERE id = ${userData.projectId}
+        `;
 
         const response = new Packet();
         response.u8(1);
@@ -337,7 +328,3 @@ export const websocket = {
     }
   },
 };
-
-function reinterpretSingle<T>(array: T[]): T {
-  return array as unknown as T;
-}

@@ -1,5 +1,6 @@
 import { type User } from "@supabase/supabase-js";
 import fs from "fs/promises";
+import { sql } from "bun";
 
 import { JobQueue, finishJob } from "./job-queue";
 import { CodeConversation } from "./ai";
@@ -65,44 +66,34 @@ async function handleAgentPost(req: Request): Promise<Response> {
     });
   }
 
-  const { data: projectData, error: projectError } = await supabase
-    .from("projects")
-    .select("id, scene, deployments ( source, created_at )")
-    .eq("id", projectId)
-    .order("created_at", { ascending: false })
-    .single();
+  const projectRows = await sql`
+    SELECT p.id, p.scene, d.source, d.created_at
+    FROM projects p
+    JOIN deployments d ON p.id = d.project_id
+    WHERE p.id = ${projectId}
+    ORDER BY d.created_at DESC
+    LIMIT 1
+  `;
 
-  if (projectError) {
-    console.error("failed to fetch project", projectError);
-    return new Response("internal server error", {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
-
-  if (!projectData) {
+  if (projectRows.length === 0) {
     return new Response("project not found", {
       status: 404,
       headers: corsHeaders,
     });
   }
 
+  const projectData = projectRows[0];
+
   const sceneData = JSON.parse(projectData.scene);
   sceneData[0].prompt = prompt;
-  const { error: updateError } = await supabase
-    .from("projects")
-    .update({ scene: JSON.stringify(sceneData) })
-    .eq("id", projectId);
+  
+  await sql`
+    UPDATE projects 
+    SET scene = ${JSON.stringify(sceneData)}
+    WHERE id = ${projectId}
+  `;
 
-  if (updateError) {
-    console.error("failed to update project", updateError);
-    return new Response("internal server error", {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
-
-  const source = projectData.deployments[0]?.source || "";
+  const source = projectData.source || "";
 
   const conversation = new CodeConversation(prompt, source);
   let result;
@@ -142,19 +133,10 @@ async function handleAgentPost(req: Request): Promise<Response> {
       finishJob(result);
     }
 
-    const { error: insertError } = await supabase.from("deployments").insert({
-      project_id: projectId,
-      source: code,
-      compiled_object: result.id,
-    });
-
-    if (insertError) {
-      console.error("failed to insert deployment", insertError);
-      return new Response("internal server error", {
-        status: 500,
-        headers: corsHeaders,
-      });
-    }
+    await sql`
+      INSERT INTO deployments (project_id, source, compiled_object)
+      VALUES (${projectId}, ${code}, ${result.id})
+    `;
 
     return new Response("OK", { headers: corsHeaders });
   } catch (err) {
@@ -169,17 +151,11 @@ async function handleProjectsGet(req: Request): Promise<Response> {
     return new Response("unauthorized", { status: 401, headers: corsHeaders });
   }
 
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name")
-    .eq("owner", user.id);
-  if (error) {
-    console.error("failed to fetch projects", error);
-    return new Response("internal server error", {
-      status: 500,
-      headers: corsHeaders,
-    });
-  }
+  const data = await sql`
+    SELECT id, name
+    FROM projects
+    WHERE owner = ${user.id}
+  `;
 
   return new Response(JSON.stringify(data), { headers: corsHeaders });
 }
