@@ -37,12 +37,15 @@ The CI/CD pipeline is defined in `.github/workflows/go-backend.yml` and includes
 
 ### 3. Security Job
 - **Runs on**: Ubuntu Latest
-- **Tools**: Gosec security scanner
+- **Tools**: Gosec security scanner (installed via Go)
 - **Output**: SARIF format for GitHub Security tab
+- **Error handling**: Non-blocking (continues on security findings)
 
 ### 4. Dependency Check Job
 - **Runs on**: Ubuntu Latest
-- **Tool**: govulncheck for vulnerability scanning
+- **Tool**: govulncheck for vulnerability scanning (binary mode)
+- **Error handling**: Non-blocking (continues on vulnerabilities)
+- **Additional**: Basic dependency pattern checking
 
 ## Triggers
 
@@ -90,11 +93,11 @@ go build -o bin/backend .
 
 # Security scan
 go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-gosec ./...
+gosec -fmt sarif -out gosec.sarif ./...
 
 # Vulnerability check
 go install golang.org/x/vuln/cmd/govulncheck@latest
-govulncheck ./...
+govulncheck -mode=binary .
 ```
 
 ## Artifacts
