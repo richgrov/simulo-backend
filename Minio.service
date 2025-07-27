@@ -1,0 +1,22 @@
+[Unit]
+Description=MinIO for backend
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/docker run \
+  --name minio \
+  -p 9000:9000 \
+  -v /home/ubuntu/minio-data:/data \
+  -v /home/ubuntu/minio-config.env:/etc/config.env \
+  -e "MINIO_CONFIG_ENV_FILE=/etc/config.env" \
+  quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z server /data
+ExecStop=/usr/bin/docker stop minio
+ExecStopPost=/usr/bin/docker rm minio
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
