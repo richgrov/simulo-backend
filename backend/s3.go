@@ -68,6 +68,19 @@ func (s *S3Client) UploadBuffer(name string, data []byte) error {
 	return nil
 }
 
+func (s *S3Client) Delete(name string) error {
+	_, err := s.client.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(name),
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to delete object: %w", err)
+	}
+
+	return nil
+}
+
 func (s *S3Client) PresignURL(name string, expiresIn time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(s.client)
 

@@ -307,6 +307,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 			if ok {
 				index := int(packet.Index)
 				if index < len(promptImages) {
+					_ = ws.s3Client.Delete(promptImages[index].(string))
 					scene[0]["promptImages"] = append(promptImages[:index], promptImages[index+1:]...)
 				}
 			}
@@ -367,17 +368,7 @@ func (ws *WebSocketHandler) sendMachineProject(machineID int) {
 		hashes[i] = hash
 	}
 
-	packet := protocol.NewPacket()
-	packet.U8(0)
-	packet.String(urls[0])
-	packet.Bytes(hashes[0])
-	packet.U8(uint8(len(urls) - 1))
-	for i := 1; i < len(urls); i++ {
-		packet.String(urls[i])
-		packet.Bytes(hashes[i])
-	}
-
-	ws.conn.WriteMessage(websocket.BinaryMessage, packet.ToBuffer())
+	ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2MInitAssets(urls[0], hashes[0], urls[1:], hashes[1:]))
 }
 
 func (ws *WebSocketHandler) verifySignature(id, publicKeyPem string, signature []byte) bool {
