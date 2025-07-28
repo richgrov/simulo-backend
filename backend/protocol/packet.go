@@ -31,6 +31,10 @@ func (p *Packet) Bytes(data []byte) {
 	p.buffer.Write(data)
 }
 
+func (p *Packet) FixedBytes(data []byte) {
+	p.buffer.Write(data)
+}
+
 func (p *Packet) ToBuffer() []byte {
 	return p.buffer.Bytes()
 }
@@ -60,18 +64,18 @@ func (pr *PacketReader) DynBytes(limit uint32) ([]byte, error) {
 	if pr.offset+4 > len(pr.data) {
 		return nil, fmt.Errorf("not enough data for length")
 	}
-	
+
 	length := binary.BigEndian.Uint32(pr.data[pr.offset : pr.offset+4])
 	pr.offset += 4
 
 	if length > limit {
 		return nil, fmt.Errorf("data length exceeds limit")
 	}
-	
+
 	if pr.offset+int(length) > len(pr.data) {
 		return nil, fmt.Errorf("not enough data for bytes")
 	}
-	
+
 	value := pr.data[pr.offset : pr.offset+int(length)]
 	pr.offset += int(length)
 	return value, nil
