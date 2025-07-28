@@ -17,6 +17,16 @@ impl GameObject {
         }
     }
 
+    pub fn rotation(&self) -> f32 {
+        unsafe { simulo_get_object_rotation(self.0) }
+    }
+
+    pub fn set_rotation(&self, rotation: f32) {
+        unsafe {
+            simulo_set_object_rotation(self.0, rotation);
+        }
+    }
+
     pub fn set_scale(&self, scale: glam::Vec2) {
         unsafe {
             simulo_set_object_scale(self.0, scale.x, scale.y);
@@ -168,9 +178,11 @@ unsafe extern "C" {
     fn simulo_set_pose_buffer(data: *mut f32);
     fn simulo_create_object(x: f32, y: f32, material: u32) -> u32;
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
+    fn simulo_set_object_rotation(id: u32, rotation: f32);
     fn simulo_set_object_scale(id: u32, x: f32, y: f32);
     fn simulo_get_object_x(id: u32) -> f32;
     fn simulo_get_object_y(id: u32) -> f32;
+    fn simulo_get_object_rotation(id: u32) -> f32;
     fn simulo_set_object_material(id: u32, material: u32);
     fn simulo_delete_object(id: u32);
     fn simulo_random() -> f32;
