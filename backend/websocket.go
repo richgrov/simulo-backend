@@ -111,7 +111,7 @@ func (ws *WebSocketHandler) Handle() {
 			// Handle authenticated messages
 			switch d := data.(type) {
 			case *MachineData:
-				log.Printf("[machine %d] %v", d.MachineID, message)
+				log.Printf("[machine %d] %v", d.MachineID, string(message))
 			case *UserData:
 				ws.handleUserMessage(d, message)
 			}
