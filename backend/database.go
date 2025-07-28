@@ -9,8 +9,8 @@ import (
 )
 
 type DatabaseClient struct {
-	db         *sql.DB
-	supabase   *supabase.Client
+	db          *sql.DB
+	supabase    *supabase.Client
 	supabaseKey string
 }
 
@@ -94,7 +94,7 @@ func (d *DatabaseClient) GetProjectWithLatestDeployment(projectID string) (*Proj
 		ORDER BY d.created_at DESC
 		LIMIT 1
 	`
-	
+
 	var result ProjectWithDeployment
 	err := d.db.QueryRow(query, projectID).Scan(
 		&result.ID,
@@ -102,7 +102,7 @@ func (d *DatabaseClient) GetProjectWithLatestDeployment(projectID string) (*Proj
 		&result.Source,
 		&result.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("project not found")
@@ -133,7 +133,7 @@ func (d *DatabaseClient) CreateDeployment(projectID, source, compiledObject stri
 
 func (d *DatabaseClient) GetMachine(machineID int) (*Machine, error) {
 	query := "SELECT id, public_key FROM machines WHERE id = $1"
-	
+
 	var machine Machine
 	err := d.db.QueryRow(query, machineID).Scan(&machine.ID, &machine.PublicKey)
 	if err != nil {
@@ -156,7 +156,7 @@ func (d *DatabaseClient) GetMachineProject(machineID int) (*MachineProject, erro
 		ORDER BY d.created_at DESC
 		LIMIT 1
 	`
-	
+
 	var result MachineProject
 	err := d.db.QueryRow(query, machineID).Scan(&result.Scene, &result.CompiledObject)
 	if err != nil {
@@ -171,7 +171,7 @@ func (d *DatabaseClient) GetMachineProject(machineID int) (*MachineProject, erro
 
 func (d *DatabaseClient) GetProject(projectID string) (*ProjectData, error) {
 	query := "SELECT owner, scene FROM projects WHERE id = $1"
-	
+
 	var project ProjectData
 	err := d.db.QueryRow(query, projectID).Scan(&project.Owner, &project.Scene)
 	if err != nil {
