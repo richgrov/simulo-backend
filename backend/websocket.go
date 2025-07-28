@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -14,6 +13,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/nedpals/supabase-go"
+
+	"simulo.tech/backend/m/v2/protocol"
 )
 
 type WebSocketData interface {
@@ -86,7 +87,7 @@ func NewWebSocketHandler(db *DatabaseClient, supabaseCli *supabase.Client, s3Cli
 
 func (ws *WebSocketHandler) Handle() {
 	var data WebSocketData
-	
+
 	for {
 		messageType, message, err := ws.conn.ReadMessage()
 		if err != nil {
@@ -101,7 +102,7 @@ func (ws *WebSocketHandler) Handle() {
 			} else if messageType == websocket.BinaryMessage {
 				data = ws.tryMachineAuth(message)
 			}
-			
+
 			if data == nil {
 				ws.conn.Close()
 				break
@@ -116,7 +117,7 @@ func (ws *WebSocketHandler) Handle() {
 			}
 		}
 	}
-	
+
 	// Cleanup on disconnect
 	if machineData, ok := data.(*MachineData); ok {
 		ws.onlineMachines.Remove(machineData.MachineID)
@@ -191,17 +192,17 @@ func (ws *WebSocketHandler) tryUserAuth(message string) WebSocketData {
 	log.Printf("User %s authenticated", user.ID)
 
 	// Send scene data
-	ws.conn.WriteMessage(websocket.TextMessage, []byte("scene|"+projectData.Scene))
+	ws.conn.WriteMessage(websocket.TextMessage, protocol.S2EInitScene(projectData.Scene))
 
 	// Send machine online status
 	var sceneData []map[string]interface{}
 	json.Unmarshal([]byte(projectData.Scene), &sceneData)
-	
+
 	for _, object := range sceneData {
 		if object["type"] == "machine" {
 			if machineID, ok := object["id"].(float64); ok {
 				online := ws.onlineMachines.Has(int(machineID))
-				ws.conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("machineonline|%d|%t", int(machineID), online)))
+				ws.conn.WriteMessage(websocket.TextMessage, protocol.S2EMachineOnline(int(machineID), online))
 			}
 		}
 	}
@@ -212,10 +213,7 @@ func (ws *WebSocketHandler) tryUserAuth(message string) WebSocketData {
 				if idStr, ok := imageID.(string); ok {
 					url, err := ws.s3Client.PresignURL(idStr, 5*time.Minute)
 					if err == nil {
-						packet := NewPacket()
-						packet.U8(1)
-						packet.String(url)
-						ws.conn.WriteMessage(websocket.BinaryMessage, packet.ToBuffer())
+						ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2EAddPromptImage(url))
 					}
 				}
 			}
@@ -231,7 +229,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 		return
 	}
 
-	reader := NewPacketReader(message)
+	reader := protocol.NewPacketReader(message)
 	id, err := reader.U8()
 	if err != nil {
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4012, "invalid packet"))
@@ -239,20 +237,14 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 	}
 
 	switch id {
-	case 0: // File upload
-		fileCount, err := reader.U8()
-		if err != nil {
-			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4014, "invalid file count"))
+	case protocol.E2SAddImagesId:
+		var packet protocol.E2SAddImages
+		if err := packet.Unmarshal(reader); err != nil {
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4014, "protocol error"))
 			return
 		}
 
-		for i := 0; i < int(fileCount); i++ {
-			data, err := reader.DynBytes()
-			if err != nil {
-				ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4015, "invalid file data"))
-				return
-			}
-
+		for _, data := range packet.Uploads {
 			projectData, err := ws.db.GetProject(userData.ProjectID)
 			if err != nil {
 				ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4016, "project not found"))
@@ -265,7 +257,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 			// Parse and update scene
 			var scene []map[string]interface{}
 			json.Unmarshal([]byte(projectData.Scene), &scene)
-			
+
 			if len(scene) > 0 {
 				if promptImages, ok := scene[0]["promptImages"].([]interface{}); ok {
 					scene[0]["promptImages"] = append(promptImages, fileID)
@@ -287,12 +279,43 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 			// Send presigned URL back
 			url, err := ws.s3Client.PresignURL(fileID, 5*time.Minute)
 			if err == nil {
-				packet := NewPacket()
+				packet := protocol.NewPacket()
 				packet.U8(1)
 				packet.String(url)
 				ws.conn.WriteMessage(websocket.BinaryMessage, packet.ToBuffer())
 			}
 		}
+
+	case protocol.E2SDeleteImageId:
+		var packet protocol.E2SDeleteImage
+		if err := packet.Unmarshal(reader); err != nil {
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4014, "protocol error"))
+			return
+		}
+
+		projectData, err := ws.db.GetProject(userData.ProjectID)
+		if err != nil {
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4016, "project not found"))
+			return
+		}
+
+		scene := []map[string]interface{}{}
+		json.Unmarshal([]byte(projectData.Scene), &scene)
+
+		if len(scene) > 0 {
+			promptImages, ok := scene[0]["promptImages"].([]interface{})
+			if ok {
+				index := int(packet.Index)
+				if index < len(promptImages) {
+					scene[0]["promptImages"] = append(promptImages[:index], promptImages[index+1:]...)
+				}
+			}
+		}
+
+		updatedScene, _ := json.Marshal(scene)
+		ws.db.UpdateProjectScene(userData.ProjectID, string(updatedScene))
+
+		ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2EDeletePromptImage(packet.Index))
 
 	default:
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4013, "unknown message type"))
@@ -344,7 +367,7 @@ func (ws *WebSocketHandler) sendMachineProject(machineID int) {
 		hashes[i] = hash
 	}
 
-	packet := NewPacket()
+	packet := protocol.NewPacket()
 	packet.U8(0)
 	packet.String(urls[0])
 	packet.Bytes(hashes[0])
@@ -372,4 +395,3 @@ func (ws *WebSocketHandler) verifySignature(id, publicKeyPem string, signature [
 	// based on your specific key type and signature algorithm
 	return true
 }
-

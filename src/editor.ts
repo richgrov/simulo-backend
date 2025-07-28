@@ -32,16 +32,37 @@ export function init(project: string) {
         }
 
         websocket!.send(data.session!.access_token! + "|" + projectId);
+        promptImages.innerHTML = "";
       },
       (event) => {
         if (event.data instanceof ArrayBuffer) {
           const reader = new PacketReader(event.data);
           const id = reader.u8();
-          if (id === 1) {
-            const url = reader.string();
-            promptImages.innerHTML += `<img src="${url}" alt="uploaded image" />`;
-          } else {
-            console.error("Invalid message ID", id);
+          switch (id) {
+            case 1: {
+              const url = reader.string();
+              const element = document.createElement("div");
+              const index = promptImages.children.length;
+              element.innerHTML = `<img src="${url}" alt="uploaded image"><button class="delete-button">X</button>`;
+              element.addEventListener("click", () => {
+                const packet = new Packet();
+                packet.u8(1);
+                packet.u8(index);
+                websocket!.send(packet.toBuffer());
+              });
+              promptImages.appendChild(element);
+              break;
+            }
+
+            case 2: {
+              const index = reader.u8()!;
+              const element = promptImages.children[index];
+              element?.remove();
+              break;
+            }
+
+            default:
+              console.error("Invalid message ID", id);
           }
         } else if (typeof event.data === "string") {
           const parts = event.data.split("|");

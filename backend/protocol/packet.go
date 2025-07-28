@@ -1,4 +1,4 @@
-package main
+package protocol
 
 import (
 	"bytes"
@@ -56,13 +56,17 @@ func (pr *PacketReader) U8() (uint8, error) {
 	return value, nil
 }
 
-func (pr *PacketReader) DynBytes() ([]byte, error) {
+func (pr *PacketReader) DynBytes(limit uint32) ([]byte, error) {
 	if pr.offset+4 > len(pr.data) {
 		return nil, fmt.Errorf("not enough data for length")
 	}
 	
 	length := binary.BigEndian.Uint32(pr.data[pr.offset : pr.offset+4])
 	pr.offset += 4
+
+	if length > limit {
+		return nil, fmt.Errorf("data length exceeds limit")
+	}
 	
 	if pr.offset+int(length) > len(pr.data) {
 		return nil, fmt.Errorf("not enough data for bytes")
