@@ -182,7 +182,7 @@ func (c *CodeConversation) Generate(groqClient *GroqClient) (string, error) {
 		Messages:    c.messages,
 		Temperature: 0.2,
 	}
-	
+
 	chatCompletion, err := groqClient.client.ChatCompletion(context.Background(), req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create chat completion: %w", err)
@@ -221,4 +221,3 @@ func (c *CodeConversation) ReportError(error string) {
 		Content: fmt.Sprintf("An error occurred. Produce a new code block in the same format as described in the instructions based on this error: %s", error),
 	})
 }
-
