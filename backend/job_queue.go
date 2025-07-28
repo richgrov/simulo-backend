@@ -12,6 +12,7 @@ import (
 )
 
 const WORK_DIR = "workdir"
+const TEMPLATE_DIR = "template"
 
 type Job struct {
 	Code string
@@ -128,14 +129,13 @@ crate-type = ["cdylib"]
 
 	// Copy template files
 	srcDir := filepath.Join(dir, "src")
-	templateDir := filepath.Join("backend", "template")
 
-	if err := copyFile(filepath.Join(templateDir, "lib.rs"), filepath.Join(srcDir, "lib.rs")); err != nil {
+	if err := copyFile(filepath.Join(TEMPLATE_DIR, "lib.rs"), filepath.Join(srcDir, "lib.rs")); err != nil {
 		os.RemoveAll(dir)
 		return nil, fmt.Errorf("failed to copy lib.rs: %v", err)
 	}
 
-	if err := copyFile(filepath.Join(templateDir, "simulo.rs"), filepath.Join(srcDir, "simulo.rs")); err != nil {
+	if err := copyFile(filepath.Join(TEMPLATE_DIR, "simulo.rs"), filepath.Join(srcDir, "simulo.rs")); err != nil {
 		os.RemoveAll(dir)
 		return nil, fmt.Errorf("failed to copy simulo.rs: %v", err)
 	}
