@@ -41,12 +41,16 @@ func main() {
 		log.Fatal("Failed to initialize database:", err)
 	}
 
-	s3Client := NewS3Client(
+	s3Client, err := NewS3Client(
 		os.Getenv("S3_ENDPOINT"),
 		os.Getenv("S3_ACCESS_KEY_ID"),
 		os.Getenv("S3_SECRET_ACCESS_KEY"),
 		os.Getenv("S3_BUCKET"),
 	)
+	if err != nil {
+		log.Fatal("failed to initialize S3 client: ", err)
+	}
+
 	groqClient := NewGroqClient(os.Getenv("GROQ_API_KEY"))
 	compileQueue := NewJobQueue()
 
