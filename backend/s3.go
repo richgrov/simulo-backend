@@ -21,7 +21,7 @@ type S3Client struct {
 }
 
 func NewS3Client(endpoint, accessKeyID, secretAccessKey, bucket string) *S3Client {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion("auto"),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			accessKeyID,
@@ -35,6 +35,7 @@ func NewS3Client(endpoint, accessKeyID, secretAccessKey, bucket string) *S3Clien
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
+		o.UsePathStyle = true
 	})
 
 	return &S3Client{
@@ -53,8 +54,7 @@ func (s *S3Client) UploadFile(name, filePath string) error {
 }
 
 func (s *S3Client) UploadBuffer(name string, data []byte) error {
-	// Let the service auto-calculate the SHA256 checksum
-	_, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
+	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:            aws.String(s.bucket),
 		Key:               aws.String(name),
 		Body:              bytes.NewReader(data),
@@ -71,7 +71,7 @@ func (s *S3Client) UploadBuffer(name string, data []byte) error {
 func (s *S3Client) PresignURL(name string, expiresIn time.Duration) (string, error) {
 	presignClient := s3.NewPresignClient(s.client)
 
-	request, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+	request, err := presignClient.PresignGetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(name),
 	}, func(opts *s3.PresignOptions) {
@@ -86,7 +86,7 @@ func (s *S3Client) PresignURL(name string, expiresIn time.Duration) (string, err
 }
 
 func (s *S3Client) GetHash(name string) ([]byte, error) {
-	response, err := s.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
+	response, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(name),
 	})
