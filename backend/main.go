@@ -152,10 +152,11 @@ func (s *Server) handleProjectAgent(w http.ResponseWriter, r *http.Request) {
 
 	// Generate code using AI
 	conversation := NewCodeConversation(prompt, projectData.Source)
-	var result *JobResult
+	var result JobSuccess
 	var code string
 
-	for i := 0; i < 2; i++ {
+Retry:
+	for range 2 {
 		code, err = conversation.Generate(s.groqClient)
 		if err != nil {
 			log.Printf("AI generation failed: %v", err)
@@ -164,36 +165,34 @@ func (s *Server) handleProjectAgent(w http.ResponseWriter, r *http.Request) {
 
 		log.Printf("AI generated code: %s", code)
 
-		// Compile the code
-		compileResult, err := s.compileQueue.Enqueue("use crate::simulo::*;\n" + code)
-		if err != nil {
-			log.Printf("Compile error: %v", err)
-			conversation.ReportError(err.Error())
+		compileResult := s.compileQueue.Enqueue("use crate::simulo::*;\n" + code)
+		switch compileResult.Status {
+		case StatusSuccess:
+			result = compileResult.Result.(JobSuccess)
+			break Retry
+
+		case StatusCompileError:
+			conversation.ReportError(compileResult.Result.(string))
+			log.Printf("Compile error: %s", compileResult.Result.(string))
 			continue
-		}
 
-		if compileResult.Success {
-			result = compileResult
-			break
+		case StatusInternalError:
+			log.Printf("Internal error: %s", compileResult.Result.(error).Error())
+			break Retry
 		}
-
-		conversation.ReportError(compileResult.Output)
-		log.Printf("Compile error: %s", compileResult.Output)
 	}
 
-	if result == nil {
+	if result.ID == "" {
 		http.Error(w, "Job failed", http.StatusInternalServerError)
 		return
 	}
 
-	// Upload WASM file to S3
 	if err := s.s3Client.UploadFile(result.ID, result.WasmPath); err != nil {
 		log.Printf("WASM upload failed: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Clean up
 	result.Cleanup()
 
 	// Save deployment

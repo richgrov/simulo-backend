@@ -18,11 +18,21 @@ type Job struct {
 	Done chan *JobResult
 }
 
+const (
+	StatusSuccess = iota
+	StatusCompileError
+	StatusInternalError
+)
+
+type JobSuccess struct {
+	ID       string
+	WasmPath string
+	Output   string
+}
+
 type JobResult struct {
-	Success  bool   `json:"success"`
-	ID       string `json:"id,omitempty"`
-	WasmPath string `json:"wasm_path,omitempty"`
-	Output   string `json:"output,omitempty"`
+	Status int
+	Result any
 }
 
 type JobQueue struct {
@@ -42,7 +52,7 @@ func NewJobQueue() *JobQueue {
 	}
 }
 
-func (jq *JobQueue) Enqueue(code string) (*JobResult, error) {
+func (jq *JobQueue) Enqueue(code string) *JobResult {
 	job := &Job{
 		Code: code,
 		Done: make(chan *JobResult, 1),
@@ -57,7 +67,7 @@ func (jq *JobQueue) Enqueue(code string) (*JobResult, error) {
 	jq.mutex.Unlock()
 
 	result := <-job.Done
-	return result, nil
+	return result
 }
 
 func (jq *JobQueue) process() {
@@ -73,19 +83,22 @@ func (jq *JobQueue) process() {
 		jq.queue = jq.queue[1:]
 		jq.mutex.Unlock()
 
-		result := jq.runJob(job.Code)
+		result, err := jq.runJob(job.Code)
+		if err != nil {
+			result = &JobResult{Status: StatusInternalError, Result: err}
+		}
 		job.Done <- result
 	}
 }
 
-func (jq *JobQueue) runJob(code string) *JobResult {
+func (jq *JobQueue) runJob(code string) (*JobResult, error) {
 	// Generate random ID starting with 'a'
 	id := "a" + generateRandomHex(16)
 	fmt.Printf("Running job %s\n", id)
 
 	dir := filepath.Join(WORK_DIR, id)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to create directory: %v", err)}
+		return nil, fmt.Errorf("failed to create directory: %v", err)
 	}
 
 	// Initialize cargo project
@@ -93,7 +106,7 @@ func (jq *JobQueue) runJob(code string) *JobResult {
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to init cargo project: %v", err)}
+		return nil, fmt.Errorf("failed to init cargo project: %v", err)
 	}
 
 	// Update Cargo.toml
@@ -110,7 +123,7 @@ crate-type = ["cdylib"]
 `
 	if err := os.WriteFile(filepath.Join(dir, "Cargo.toml"), []byte(cargoToml), 0644); err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to write Cargo.toml: %v", err)}
+		return nil, fmt.Errorf("failed to write Cargo.toml: %v", err)
 	}
 
 	// Copy template files
@@ -119,18 +132,18 @@ crate-type = ["cdylib"]
 
 	if err := copyFile(filepath.Join(templateDir, "lib.rs"), filepath.Join(srcDir, "lib.rs")); err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to copy lib.rs: %v", err)}
+		return nil, fmt.Errorf("failed to copy lib.rs: %v", err)
 	}
 
 	if err := copyFile(filepath.Join(templateDir, "simulo.rs"), filepath.Join(srcDir, "simulo.rs")); err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to copy simulo.rs: %v", err)}
+		return nil, fmt.Errorf("failed to copy simulo.rs: %v", err)
 	}
 
 	// Write game code
 	if err := os.WriteFile(filepath.Join(srcDir, "game.rs"), []byte(code), 0644); err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: fmt.Sprintf("failed to write game.rs: %v", err)}
+		return nil, fmt.Errorf("failed to write game.rs: %v", err)
 	}
 
 	// Build the project
@@ -139,28 +152,20 @@ crate-type = ["cdylib"]
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: string(output)}
+		return &JobResult{Status: StatusCompileError, Result: string(output)}, nil
 	}
 
 	// Construct WASM path
 	crateName := strings.ReplaceAll(id, "-", "_")
 	wasmPath := filepath.Join(dir, "target", "wasm32-unknown-unknown", "release", crateName+".wasm")
 
-	// Check if WASM file exists
-	if _, err := os.Stat(wasmPath); os.IsNotExist(err) {
-		os.RemoveAll(dir)
-		return &JobResult{Success: false, Output: "WASM file not found after build"}
-	}
-
 	fmt.Printf("Job %s completed\n", id)
-	return &JobResult{Success: true, ID: id, WasmPath: wasmPath}
+	return &JobResult{Status: StatusSuccess, Result: JobSuccess{ID: id, WasmPath: wasmPath}}, nil
 }
 
-func (jr *JobResult) Cleanup() {
-	if jr.Success && jr.ID != "" {
-		dir := filepath.Join(WORK_DIR, jr.ID)
-		os.RemoveAll(dir)
-	}
+func (jr *JobSuccess) Cleanup() {
+	dir := filepath.Join(WORK_DIR, jr.ID)
+	os.RemoveAll(dir)
 }
 
 func generateRandomHex(length int) string {
