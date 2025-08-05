@@ -25,3 +25,7 @@ dist-ssr
 
 .env
 workdir
+
+# Build artifacts
+backend/bin/
+build/backend
