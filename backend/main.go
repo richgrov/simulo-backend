@@ -65,7 +65,6 @@ func main() {
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				origin := r.Header.Get("Origin")
-				log.Println("WebSocket Origin:", origin) // Log confirms the origin is being checked
 				return origin == "" || origin == cors
 			},
 		},
