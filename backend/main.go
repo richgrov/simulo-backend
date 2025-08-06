@@ -54,6 +54,8 @@ func main() {
 	groqClient := NewGroqClient(os.Getenv("GROQ_API_KEY"))
 	compileQueue := NewJobQueue()
 
+	cors := os.Getenv("CORS")
+
 	server := &Server{
 		supabaseCli:  supabaseCli,
 		db:           db,
@@ -62,7 +64,8 @@ func main() {
 		compileQueue: compileQueue,
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
-				return true // Configure properly in production
+				origin := r.Header.Get("Origin")
+				return origin == "" || origin == cors
 			},
 		},
 	}
