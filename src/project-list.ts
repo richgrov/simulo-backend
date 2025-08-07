@@ -12,13 +12,15 @@ export async function init() {
   const projects = await fetchProjects();
   projectList.innerHTML = "";
 
-  // Add create project button
-  const createProjectHtml = `<div id="create-project-card" style="position: relative; width: 350px; height: 160px; cursor: pointer">
-      <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="-1 -1 102 42"
-          width="100%"
-          style="
+  const createProjectCard = html`<div
+    id="create-project-card"
+    style="position: relative; width: 350px; height: 160px; cursor: pointer"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="-1 -1 102 42"
+      width="100%"
+      style="
               stroke: #c0c9cf;
               fill: rgba(0, 0, 0, 0.5);
               stroke-width: 1;
@@ -26,35 +28,30 @@ export async function init() {
               top: 0;
               z-index: -1;
           "
-      >
-          <path
-              d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
-              vector-effect="non-scaling-stroke"
-          />
-      </svg>
-      <div style="padding: 0 24px">
-          <h2 style="display: inline-block">Create New Project</h2>
-      </div>
+    >
+      <path
+        d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+        vector-effect="non-scaling-stroke"
+      />
+    </svg>
+    <div style="padding: 0 24px">
+      <h2 style="display: inline-block">Create New Project</h2>
+    </div>
   </div>`;
-
-  projectList.innerHTML += createProjectHtml;
-
-  // Add event listener for create project card
-  const createProjectCard = document.getElementById("create-project-card")!;
+  projectList.appendChild(createProjectCard);
   createProjectCard.addEventListener("click", handleCreateProject);
 
   for (const { id, name } of projects) {
     const status = "NOT DEPLOYED";
     const color = "gray";
 
-    projectList.innerHTML += html`<div
-      style="position: relative; width: 350px; height: 160px"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="-1 -1 102 42"
-        width="100%"
-        style="
+    projectList.appendChild(
+      html`<div style="position: relative; width: 350px; height: 160px">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="-1 -1 102 42"
+          width="100%"
+          style="
                 stroke: #c0c9cf;
                 fill: rgba(0, 0, 0, 0.5);
                 stroke-width: 1;
@@ -62,43 +59,44 @@ export async function init() {
                 top: 0;
                 z-index: -1;
             "
-      >
-        <path
-          d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
-          vector-effect="non-scaling-stroke"
-        />
-      </svg>
-      <div style="padding: 0 24px">
-        <h2 style="display: inline-block">${name}</h2>
-        <button
-          style="
+        >
+          <path
+            d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+            vector-effect="non-scaling-stroke"
+          />
+        </svg>
+        <div style="padding: 0 24px">
+          <h2 style="display: inline-block">${name}</h2>
+          <button
+            style="
                     display: inline-block;
                     margin: 20px 0;
                     float: right;
                     font-size: 1.5rem;
                 "
-        >
-          &vellip;
-        </button>
-      </div>
-      <p
-        style="
+          >
+            &vellip;
+          </button>
+        </div>
+        <p
+          style="
                 color: ${color};
                 position: absolute;
                 left: 24px;
                 top: 36px;
             "
-      >
-        &#9679; ${status}
-      </p>
-      <a
-        class="highlight"
-        style="position: absolute; right: 30px; bottom: 0"
-        href="?${id}"
-      >
-        LAUNCH
-      </a>
-    </div>`;
+        >
+          &#9679; ${status}
+        </p>
+        <a
+          class="highlight"
+          style="position: absolute; right: 30px; bottom: 0"
+          href="?${id}"
+        >
+          LAUNCH
+        </a>
+      </div>`,
+    );
   }
 }
 

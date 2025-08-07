@@ -28,10 +28,12 @@ export function escape(text: string): string {
     .replace(/'/g, "&#039;");
 }
 
-export function html(strings: TemplateStringsArray, ...values: any[]) {
-  return strings.reduce((acc, str, i) => {
+export function html(strings: TemplateStringsArray, ...values: any[]): Element {
+  const element = document.createElement("template");
+  element.innerHTML = strings.reduce((acc, str, i) => {
     return acc + str + escape(values[i] || "");
   }, "");
+  return element.content.firstElementChild!;
 }
 
 export function loadingText(element: HTMLElement): () => void {
