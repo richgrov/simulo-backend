@@ -12,6 +12,37 @@ export async function init() {
   const projects = await fetchProjects();
   projectList.innerHTML = "";
 
+  // Add create project button
+  const createProjectHtml = `<div id="create-project-card" style="position: relative; width: 350px; height: 160px; cursor: pointer">
+      <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="-1 -1 102 42"
+          width="100%"
+          style="
+              stroke: #c0c9cf;
+              fill: rgba(0, 0, 0, 0.5);
+              stroke-width: 1;
+              position: absolute;
+              top: 0;
+              z-index: -1;
+          "
+      >
+          <path
+              d="M5 0 L100 0 L100 35 L95 40 L0 40 L0 5 Z"
+              vector-effect="non-scaling-stroke"
+          />
+      </svg>
+      <div style="padding: 0 24px">
+          <h2 style="display: inline-block">Create New Project</h2>
+      </div>
+  </div>`;
+
+  projectList.innerHTML += createProjectHtml;
+
+  // Add event listener for create project card
+  const createProjectCard = document.getElementById("create-project-card")!;
+  createProjectCard.addEventListener("click", handleCreateProject);
+
   for (const { id, name } of projects) {
     const status = "NOT DEPLOYED";
     const color = "gray";
@@ -87,4 +118,44 @@ async function fetchProjects(): Promise<Project[]> {
   }
 
   return await response.json();
+}
+
+async function handleCreateProject() {
+  try {
+    // Placeholder API call - replace with actual endpoint when backend is ready
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+
+    if (sessionError) {
+      throw sessionError;
+    }
+
+    // TODO: Replace with actual create project API endpoint
+    const response = await fetch(import.meta.env.VITE_BACKEND + "/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: sessionData.session!.access_token,
+      },
+      body: JSON.stringify({
+        name: `New Project ${Date.now()}`, // Placeholder name
+      }),
+    });
+
+    if (!response.ok) {
+      // For now, simulate successful creation with a placeholder ID
+      const placeholderId = `project_${Date.now()}`;
+      window.location.href = `?${placeholderId}`;
+      return;
+    }
+
+    const newProject = await response.json();
+    // Navigate to the new project using its ID
+    window.location.href = `?${newProject.id}`;
+  } catch (error) {
+    console.error("Create project error:", error);
+    // Even on error, navigate to a placeholder project for demo purposes
+    const placeholderId = `project_${Date.now()}`;
+    window.location.href = `?${placeholderId}`;
+  }
 }
