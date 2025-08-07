@@ -28,6 +28,12 @@ export function escape(text: string): string {
     .replace(/'/g, "&#039;");
 }
 
+export function html(strings: TemplateStringsArray, ...values: any[]) {
+  return strings.reduce((acc, str, i) => {
+    return acc + str + escape(values[i] || "");
+  }, "");
+}
+
 export function loadingText(element: HTMLElement): () => void {
   let initialText = element.innerText;
 
