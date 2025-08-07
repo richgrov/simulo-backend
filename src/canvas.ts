@@ -31,11 +31,11 @@ controls.target.set(0, 0, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
 
-const gridSize = 30;
-const spacing = 4;
+const gridSize = 10;
+const spacing = 2;
 
-const dotGeometry = new THREE.SphereGeometry(0.2, 8, 8);
-const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+const dotGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+const dotMaterial = new THREE.MeshBasicMaterial({ color: 0x888888 });
 const dotCount = gridSize * gridSize;
 const instancedDots = new THREE.InstancedMesh(
   dotGeometry,
@@ -56,7 +56,7 @@ for (let x = 0; x < gridSize; x++) {
 }
 scene.add(instancedDots);
 
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x888888 });
+const lineMaterial = new THREE.LineBasicMaterial({ color: 0x666666 });
 for (let x = 0; x < gridSize; x++) {
   for (let z = 0; z < gridSize; z++) {
     const posX = (x - gridSize / 2) * spacing;
@@ -92,7 +92,7 @@ for (let x = 0; x < gridSize; x++) {
 }
 
 const squareMaterialTemplate = new THREE.MeshBasicMaterial({
-  color: 0x444444,
+  color: 0x222222,
   side: THREE.DoubleSide,
   transparent: true, // Enable opacity control
   opacity: 0,
@@ -154,7 +154,7 @@ function loop() {
     squareState.timer -= delta;
     if (squareState.timer > 0) continue;
 
-    mat.opacity += fadeDirection * delta * 0.5; // Fade speed
+    mat.opacity += fadeDirection * delta * 0.5;
 
     if (mat.opacity <= 0) {
       mat.opacity = 0;
@@ -166,8 +166,8 @@ function loop() {
 
       // Wait before starting fade-in
       squareState.timer = Math.random() * 2;
-    } else if (mat.opacity >= 1) {
-      mat.opacity = 1;
+    } else if (mat.opacity >= 0.75) {
+      mat.opacity = 0.75;
       squareState.fadeDirection = -1;
 
       // Wait before starting fade-out
