@@ -13,7 +13,7 @@ export async function init() {
   projectList.innerHTML = "";
 
   // Add create project button
-  const createProjectHtml = `<div style="position: relative; width: 350px; height: 160px">
+  const createProjectHtml = `<div id="create-project-card" style="position: relative; width: 350px; height: 160px; cursor: pointer">
       <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="-1 -1 102 42"
@@ -35,20 +35,13 @@ export async function init() {
       <div style="padding: 0 24px">
           <h2 style="display: inline-block">Create New Project</h2>
       </div>
-      <button
-          id="create-project-btn"
-          class="highlight"
-          style="position: absolute; right: 30px; bottom: 0"
-      >
-          CREATE
-      </button>
   </div>`;
 
   projectList.innerHTML += createProjectHtml;
 
-  // Add event listener for create project button
-  const createProjectBtn = document.getElementById("create-project-btn")!;
-  createProjectBtn.addEventListener("click", handleCreateProject);
+  // Add event listener for create project card
+  const createProjectCard = document.getElementById("create-project-card")!;
+  createProjectCard.addEventListener("click", handleCreateProject);
 
   for (const { id, name } of projects) {
     const status = "NOT DEPLOYED";
