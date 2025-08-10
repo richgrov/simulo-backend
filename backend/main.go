@@ -121,8 +121,13 @@ func (s *Server) handleProjectAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	prompt := r.FormValue("prompt")
-	if len(prompt) < 1 || len(prompt) > 1000 {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+	if len(prompt) < 1 {
+		http.Error(w, "No prompt provided", http.StatusBadRequest)
+		return
+	}
+
+	if len(prompt) > 2000 {
+		http.Error(w, "Prompt too long", http.StatusBadRequest)
 		return
 	}
 
