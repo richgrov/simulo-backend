@@ -1,6 +1,7 @@
 import { supabase } from "./auth/supabase";
 import * as ui from "./ui";
-import * as canvas from "./canvas";
+import * as canvas from "./canvas/canvas";
+import EditorScene from "./canvas/editor-scene";
 import { RetryWebsocket } from "./websocket";
 import { Packet, PacketReader } from "../util/packet";
 
@@ -20,6 +21,8 @@ let websocket: RetryWebsocket | undefined;
 export function init(project: string) {
   projectId = project;
   editorControls.style["display"] = "flex";
+  const scene = new EditorScene(canvas.renderer);
+  canvas.setScene(scene);
 
   if (!websocket) {
     websocket = new RetryWebsocket(
@@ -69,12 +72,9 @@ export function init(project: string) {
           if (parts[0] === "scene") {
             const sceneData = JSON.parse(parts[1]);
             promptInput.value = sceneData[0].prompt;
-            canvas.init(sceneData);
+            scene.initSceneData(sceneData);
           } else if (parts[0] === "machineonline") {
-            canvas.setMachineOnline(
-              parseInt(parts[1], 10),
-              parts[2] === "true",
-            );
+            scene.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
           }
         } else {
           console.error("Invalid message type", event.data);
