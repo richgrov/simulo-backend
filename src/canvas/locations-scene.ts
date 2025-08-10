@@ -26,6 +26,9 @@ export default class LocationsScene extends THREE.Scene implements Scene {
 
     this.orbitControls = new OrbitControls(this.camera, renderer.domElement);
     this.orbitControls.target.set(0, 0, 0);
+    this.orbitControls.minDistance = 6;
+    this.orbitControls.maxDistance = 20;
+    this.orbitControls.enablePan = false;
     this.orbitControls.enableDamping = true;
     this.orbitControls.dampingFactor = 0.1;
 
