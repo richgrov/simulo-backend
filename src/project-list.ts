@@ -1,6 +1,9 @@
 import { supabase } from "./auth/supabase";
 import { html } from "./ui";
 
+import * as canvas from "./canvas/canvas";
+import LocationsScene from "./canvas/locations-scene";
+
 const projectList = document.getElementById("project-list")!;
 
 interface Project {
@@ -9,6 +12,8 @@ interface Project {
 }
 
 export async function init() {
+  canvas.setScene(new LocationsScene(canvas.renderer));
+
   const projects = await fetchProjects();
   projectList.innerHTML = "";
 
