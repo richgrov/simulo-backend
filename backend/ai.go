@@ -69,6 +69,8 @@ impl GameObject {
     /// Sets the rotation of the object in radians.
     pub fn set_rotation(&self, rotation: f32) { /* stub */ }
 
+    pub fn scale(&self) -> glam::Vec2 { /* stub */ }
+
     pub fn set_scale(&self, scale: glam::Vec2) { /* stub */ }
 
     pub fn set_material(&self, material: &Material) { /* stub */ }

@@ -27,6 +27,15 @@ impl GameObject {
         }
     }
 
+    pub fn get_scale(&self) -> glam::Vec2 {
+        unsafe {
+            glam::Vec2::new(
+                simulo_get_object_scale_x(self.0),
+                simulo_get_object_scale_y(self.0)
+            )
+        }
+    }
+
     pub fn set_scale(&self, scale: glam::Vec2) {
         unsafe {
             simulo_set_object_scale(self.0, scale.x, scale.y);
@@ -183,6 +192,8 @@ unsafe extern "C" {
     fn simulo_get_object_x(id: u32) -> f32;
     fn simulo_get_object_y(id: u32) -> f32;
     fn simulo_get_object_rotation(id: u32) -> f32;
+    fn simulo_get_object_scale_x(id: u32) -> f32;
+    fn simulo_get_object_scale_y(id: u32) -> f32;
     fn simulo_set_object_material(id: u32, material: u32);
     fn simulo_delete_object(id: u32);
     fn simulo_random() -> f32;
