@@ -3,6 +3,7 @@ import { html } from "./ui";
 
 import * as canvas from "./canvas/canvas";
 import LocationsScene from "./canvas/locations-scene";
+import { Location } from "./models";
 
 const projectList = document.getElementById("project-list")!;
 
@@ -12,9 +13,13 @@ interface Project {
 }
 
 export async function init() {
-  canvas.setScene(new LocationsScene(canvas.renderer));
-
   const projects = await fetchProjects();
+  const locations = await fetchLocations();
+
+  const locationsScene = new LocationsScene(canvas.renderer);
+  locationsScene.addLocations(locations);
+  canvas.setScene(locationsScene);
+
   projectList.innerHTML = "";
 
   const createProjectCard = html`<div
@@ -114,6 +119,26 @@ async function fetchProjects(): Promise<Project[]> {
   }
 
   const response = await fetch(import.meta.env.VITE_BACKEND + "/projects", {
+    headers: {
+      Authorization: sessionData.session!.access_token,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(response.statusText);
+  }
+
+  return await response.json();
+}
+
+async function fetchLocations(): Promise<Location[]> {
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  const response = await fetch(import.meta.env.VITE_BACKEND + "/locations", {
     headers: {
       Authorization: sessionData.session!.access_token,
     },

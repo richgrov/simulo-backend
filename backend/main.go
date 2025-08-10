@@ -70,9 +70,9 @@ func main() {
 		},
 	}
 
-	// Setup routes
 	http.HandleFunc("/project/", server.handleProjectAgent)
 	http.HandleFunc("/projects", server.handleProjects)
+	http.HandleFunc("/locations", server.handleLocations)
 	http.HandleFunc("/", server.handleWebSocket)
 
 	port := os.Getenv("PORT")
@@ -244,6 +244,35 @@ func (s *Server) handleProjects(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(projects)
+}
+
+func (s *Server) handleLocations(w http.ResponseWriter, r *http.Request) {
+	s.setCORSHeaders(w)
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	user, err := s.authorize(r)
+	if err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	locations, err := s.db.GetUserLocations(user.ID)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(locations)
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {

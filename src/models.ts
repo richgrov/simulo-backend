@@ -75,3 +75,11 @@ export class Machine extends THREE.Object3D {
 
   onClick() {}
 }
+
+export interface Location {
+  id: string;
+  owner: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}

@@ -2,14 +2,29 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import geojson from "../assets/countries.json";
 import Scene from "./scene";
 import * as THREE from "three";
+import { Location } from "../models";
 
 export default class LocationsScene extends THREE.Scene implements Scene {
   public camera: THREE.PerspectiveCamera;
 
   private orbitControls: OrbitControls;
-  private sphere!: THREE.Mesh;
-  private countriesGroup!: THREE.Group;
+  private locationsGroup = new THREE.Group();
   private readonly RADIUS = 5;
+
+  private coordsToPos(
+    latitude: number,
+    longitude: number,
+    radius: number = this.RADIUS,
+  ): THREE.Vector3 {
+    const phi = (90 - latitude) * (Math.PI / 180);
+    const theta = (longitude + 180) * (Math.PI / 180);
+
+    const x = -radius * Math.sin(phi) * Math.cos(theta);
+    const z = radius * Math.sin(phi) * Math.sin(theta);
+    const y = radius * Math.cos(phi);
+
+    return new THREE.Vector3(x, y, z);
+  }
 
   constructor(renderer: THREE.WebGLRenderer) {
     super();
@@ -32,24 +47,14 @@ export default class LocationsScene extends THREE.Scene implements Scene {
     this.orbitControls.enableDamping = true;
     this.orbitControls.dampingFactor = 0.1;
 
-    this.createSphere();
-    this.createCountries();
-
-    this.camera.position.set(0, 0, 15);
-  }
-
-  private createSphere(): void {
-    const sphereGeometry = new THREE.SphereGeometry(4.74, 64, 64);
-    const sphereMaterial = new THREE.MeshBasicMaterial({
-      color: 0xd8d7d3,
-    });
-
-    this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    this.add(this.sphere);
-  }
-
-  private createCountries(): void {
-    this.countriesGroup = new THREE.Group();
+    this.add(
+      new THREE.Mesh(
+        new THREE.SphereGeometry(4.74, 64, 64),
+        new THREE.MeshBasicMaterial({
+          color: 0xd8d7d3,
+        }),
+      ),
+    );
 
     geojson.forEach((country: any) => {
       if (country.type === "Polygon") {
@@ -61,7 +66,8 @@ export default class LocationsScene extends THREE.Scene implements Scene {
       }
     });
 
-    this.add(this.countriesGroup);
+    this.camera.position.set(0, 0, 15);
+    this.add(this.locationsGroup);
   }
 
   private createCountryFromPolygon(coordinates: number[][]): void {
@@ -83,14 +89,9 @@ export default class LocationsScene extends THREE.Scene implements Scene {
     triangles.forEach((tri) => {
       tri.forEach((idx) => {
         const [lon, lat] = latLonArray[idx];
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
+        const position = this.coordsToPos(lat, lon);
 
-        const x = -this.RADIUS * Math.sin(phi) * Math.cos(theta);
-        const z = this.RADIUS * Math.sin(phi) * Math.sin(theta);
-        const y = this.RADIUS * Math.cos(phi);
-
-        positions.push(x, y, z);
+        positions.push(position.x, position.y, position.z);
       });
     });
 
@@ -106,8 +107,32 @@ export default class LocationsScene extends THREE.Scene implements Scene {
       side: THREE.FrontSide,
     });
 
-    const mesh = new THREE.Mesh(geometry, material);
-    this.countriesGroup.add(mesh);
+    this.add(new THREE.Mesh(geometry, material));
+  }
+
+  public addLocations(locations: Location[]): void {
+    for (const location of locations) {
+      this.locationsGroup.add(this.createLocationPoint(location));
+    }
+  }
+
+  private createLocationPoint(location: Location): THREE.Points {
+    const position = this.coordsToPos(location.latitude, location.longitude);
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute([position.x, position.y, position.z], 3),
+    );
+
+    const material = new THREE.PointsMaterial({
+      color: 0xe8c7c3,
+      size: 8,
+      sizeAttenuation: false,
+      depthWrite: false,
+    });
+
+    return new THREE.Points(geometry, material);
   }
 
   update(_delta: number): void {

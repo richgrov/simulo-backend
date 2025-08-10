@@ -46,6 +46,14 @@ type ProjectData struct {
 	Scene string `json:"scene"`
 }
 
+type Location struct {
+	Id        string  `json:"id"`
+	Owner     string  `json:"owner"`
+	Name      string  `json:"name"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 func NewDatabaseClient(postgresURL, supabaseURL, supabaseKey string) (*DatabaseClient, error) {
 	db, err := sql.Open("postgres", postgresURL)
 	if err != nil {
@@ -156,7 +164,6 @@ func (d *DatabaseClient) GetMachineProject(machineID int) (*MachineProject, erro
 		ORDER BY d.created_at DESC
 		LIMIT 1
 	`
-
 	var result MachineProject
 	err := d.db.QueryRow(query, machineID).Scan(&result.Scene, &result.CompiledObject)
 	if err != nil {
@@ -182,4 +189,24 @@ func (d *DatabaseClient) GetProject(projectID string) (*ProjectData, error) {
 	}
 
 	return &project, nil
+}
+
+func (d *DatabaseClient) GetUserLocations(userID string) ([]Location, error) {
+	query := "SELECT id, owner, name, latitude, longitude FROM locations WHERE owner = $1"
+	rows, err := d.db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query locations: %w", err)
+	}
+	defer rows.Close()
+
+	var locations []Location
+	for rows.Next() {
+		var location Location
+		if err := rows.Scan(&location.Id, &location.Owner, &location.Name, &location.Latitude, &location.Longitude); err != nil {
+			return nil, fmt.Errorf("failed to scan location: %w", err)
+		}
+		locations = append(locations, location)
+	}
+
+	return locations, nil
 }
