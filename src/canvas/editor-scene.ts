@@ -10,8 +10,8 @@ const spacing = 2;
 
 type SquareState = {
   mesh: THREE.Mesh;
-  fadeDirection: 1 | -1; // 1 for fade-in, -1 for fade-out
-  timer: number; // To delay before switching position
+  fadeDirection: 1 | -1;
+  timer: number;
 };
 
 function randomGridPosition() {
@@ -109,8 +109,6 @@ export default class EditorScene extends THREE.Scene implements Scene {
     const squareMaterialTemplate = new THREE.MeshBasicMaterial({
       color: 0x222222,
       side: THREE.DoubleSide,
-      transparent: true, // Enable opacity control
-      opacity: 0,
     });
 
     const squareGeometry = new THREE.PlaneGeometry(spacing, spacing);
