@@ -22,7 +22,6 @@ export async function init() {
 
   projectList.innerHTML = "";
 }
-// Export refresh function so it can be called from other parts of the app
 export async function refreshProjectList() {
   await refreshProjects();
 }
@@ -189,36 +188,6 @@ async function fetchLocations(): Promise<Location[]> {
   }
 
   return await response.json();
-}
-
-async function handleCreateProject() {
-  try {
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw sessionError;
-    }
-
-    const response = await fetch(import.meta.env.VITE_BACKEND + "/projects", {
-      headers: {
-        Authorization: sessionData.session!.access_token,
-      },
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Failed to fetch projects:", response.status, errorText);
-      throw new Error(`Failed to fetch projects: ${response.statusText}`);
-    }
-
-    const projects = await response.json();
-    
-    return projects || [];
-  } catch (error) {
-    console.error("Error fetching projects:", error);
-    throw error;
-  }
 }
 
 async function handleCreateProject() {
