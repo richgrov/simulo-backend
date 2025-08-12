@@ -137,6 +137,7 @@ export default class LocationsScene extends THREE.Scene implements Scene {
 
   update(_delta: number): void {
     this.orbitControls.update();
+    this.orbitControls.rotateSpeed = this.orbitControls.getDistance() / 50;
   }
 
   resize(width: number, height: number): void {
