@@ -31,7 +31,9 @@ export function escape(text: string): string {
 export function html(strings: TemplateStringsArray, ...values: any[]): Element {
   const element = document.createElement("template");
   element.innerHTML = strings.reduce((acc, str, i) => {
-    return acc + str + escape(values[i] || "");
+    const value = values[i];
+    const escapedValue = value != null ? escape(String(value)) : "";
+    return acc + str + escapedValue;
   }, "");
   return element.content.firstElementChild!;
 }
