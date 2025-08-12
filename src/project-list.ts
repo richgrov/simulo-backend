@@ -222,7 +222,6 @@ async function handleCreateProject() {
   }
 }
 
-// Project management functions
 function addProjectMenuEventListeners(): void {
   const menuButtons = document.querySelectorAll('.project-menu-btn');
   menuButtons.forEach(button => {
