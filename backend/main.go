@@ -327,7 +327,6 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorize user
 	user, err := s.authorize(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -364,7 +363,6 @@ func (s *Server) renameProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse request body
 	var request struct {
 		ProjectID string `json:"project_id"`
 		Name      string `json:"name"`
@@ -375,7 +373,6 @@ func (s *Server) renameProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate input
 	if request.ProjectID == "" {
 		http.Error(w, "Project ID required", http.StatusBadRequest)
 		return
@@ -422,7 +419,6 @@ func (s *Server) handleProjectDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract project ID from query parameter
 	projectID := r.URL.Query().Get("id")
 	log.Printf("Project ID from query: %s", projectID)
 
@@ -432,7 +428,6 @@ func (s *Server) handleProjectDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Authorize user
 	user, err := s.authorize(r)
 	if err != nil {
 		log.Printf("Authorization failed: %v", err)
@@ -441,7 +436,6 @@ func (s *Server) handleProjectDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("User authorized: %s", user.ID)
 
-	// Delete the project
 	err = s.db.DeleteProject(projectID, user.ID)
 	if err != nil {
 		log.Printf("Delete project failed: %v", err)

@@ -29,12 +29,9 @@ export async function refreshProjectList() {
 
 async function refreshProjects() {
   try {
-    console.log("Starting refreshProjects...");
     const projects = await fetchProjects();
-    console.log("Projects fetched, count:", projects.length);
     
     projectList.innerHTML = "";
-    console.log("Project list cleared");
 
     const createProjectCard = html`<div
       id="create-project-card"
@@ -64,15 +61,10 @@ async function refreshProjects() {
     </div>`;
     projectList.appendChild(createProjectCard);
     createProjectCard.addEventListener("click", handleCreateProject);
-    console.log("Create project card added");
 
-    console.log("Starting to render projects...");
     for (const { id, name } of projects) {
-      console.log(`Rendering project: ID=${id}, Name=${name}`);
-      
       // Ensure we have valid data
       if (id == null || name == null) {
-        console.warn(`Skipping project with invalid data: ID=${id}, Name=${name}`);
         continue;
       }
       
@@ -140,14 +132,10 @@ async function refreshProjects() {
         </div>`,
       );
     }
-    console.log("Finished rendering projects");
 
-    // Add event listeners for project menu buttons
     addProjectMenuEventListeners();
 
-    // Show message if no projects found
     if (projects.length === 0) {
-      console.log("No projects found, showing message");
       const noProjectsMsg = html`<div style="
         text-align: center; 
         color: #c0c9cf; 
@@ -212,17 +200,11 @@ async function handleCreateProject() {
       throw sessionError;
     }
 
-    console.log("Fetching projects with backend URL:", import.meta.env.VITE_BACKEND);
-    console.log("Session token present:", !!sessionData.session?.access_token);
-
     const response = await fetch(import.meta.env.VITE_BACKEND + "/projects", {
       headers: {
         Authorization: sessionData.session!.access_token,
       },
     });
-    
-    console.log("Projects response status:", response.status);
-    console.log("Projects response headers:", Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -231,18 +213,6 @@ async function handleCreateProject() {
     }
 
     const projects = await response.json();
-    console.log("Raw projects response:", projects);
-    console.log("Projects type:", typeof projects);
-    console.log("Projects length:", projects?.length);
-    console.log("Projects array check:", Array.isArray(projects));
-    
-    if (Array.isArray(projects)) {
-      projects.forEach((project, index) => {
-        console.log(`Project ${index}:`, project);
-        console.log(`  ID type: ${typeof project.id}, value: ${project.id}`);
-        console.log(`  Name type: ${typeof project.name}, value: ${project.name}`);
-      });
-    }
     
     return projects || [];
   } catch (error) {
@@ -260,7 +230,6 @@ async function handleCreateProject() {
       throw sessionError;
     }
 
-    // Call the actual create project API endpoint
     const response = await fetch(import.meta.env.VITE_BACKEND + "/projects/create", {
       method: "POST",
       headers: {
@@ -276,13 +245,10 @@ async function handleCreateProject() {
     }
 
     const newProject = await response.json();
-    console.log("Project created successfully:", newProject);
     
-    // Navigate to the new project using its ID
     window.location.href = `?${newProject.id}`;
   } catch (error) {
     console.error("Create project error:", error);
-    // Show user-friendly error message
     alert("Failed to create project. Please try again.");
   }
 }
@@ -304,13 +270,11 @@ function addProjectMenuEventListeners(): void {
 }
 
 function showProjectMenu(projectId: number, projectName: string, buttonElement: HTMLElement): void {
-  // Remove any existing menus
   const existingMenu = document.querySelector('.project-menu-dropdown');
   if (existingMenu) {
     existingMenu.remove();
   }
 
-  // Create dropdown menu
   const menu = html`<div class="project-menu-dropdown" style="
     position: absolute;
     top: 100%;
@@ -349,13 +313,11 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
     " onmouseover="this.style.backgroundColor='#3a3a3a'" onmouseout="this.style.backgroundColor='transparent'">Delete</button>
   </div>`;
 
-  // Position the menu relative to the button
   const projectCard = buttonElement.closest('[style*="position: relative"]') as HTMLElement;
   if (projectCard) {
     projectCard.style.position = 'relative';
     projectCard.appendChild(menu);
     
-    // Position the menu
     const menuElement = projectCard.querySelector('.project-menu-dropdown') as HTMLElement;
     if (menuElement) {
       menuElement.style.position = 'absolute';
@@ -364,7 +326,7 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
     }
   }
 
-  // Add event listeners to menu options
+
   const renameOption = menu.querySelector('.rename-option');
   const deleteOption = menu.querySelector('.delete-option');
 
@@ -378,7 +340,6 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
     menu.remove();
   });
 
-  // Close menu when clicking outside
   setTimeout(() => {
     document.addEventListener('click', function closeMenu(e) {
       if (!menu.contains(e.target as Node) && !buttonElement.contains(e.target as Node)) {
@@ -403,9 +364,6 @@ async function handleRenameProject(projectId: number, currentName: string): Prom
       project_id: String(projectId),
       name: newName.trim()
     };
-    
-    console.log("Sending rename request:", requestBody);
-    console.log("Project ID type:", typeof requestBody.project_id, "Value:", requestBody.project_id);
 
     const response = await fetch(import.meta.env.VITE_BACKEND + "/projects/rename", {
       method: "POST",
@@ -416,8 +374,6 @@ async function handleRenameProject(projectId: number, currentName: string): Prom
       body: JSON.stringify(requestBody),
     });
 
-    console.log("Rename response status:", response.status);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Rename failed:", response.status, errorText);
@@ -425,9 +381,7 @@ async function handleRenameProject(projectId: number, currentName: string): Prom
       return;
     }
 
-    // Refresh the project list to show the updated name
     await refreshProjects();
-    console.log(`Project ${projectId} renamed from "${currentName}" to "${newName}"`);
   } catch (error) {
     console.error("Rename project error:", error);
     alert("Failed to rename project. Please try again.");
@@ -443,8 +397,6 @@ async function handleDeleteProject(projectId: number, projectName: string): Prom
     if (sessionError) throw sessionError;
 
     const deleteUrl = import.meta.env.VITE_BACKEND + `/projects/delete?id=${projectId}`;
-    console.log("Sending delete request to:", deleteUrl);
-    console.log("Project ID:", projectId, "Type:", typeof projectId);
 
     const response = await fetch(deleteUrl, {
       method: "DELETE",
@@ -453,8 +405,6 @@ async function handleDeleteProject(projectId: number, projectName: string): Prom
       },
     });
 
-    console.log("Delete response status:", response.status);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Delete failed:", response.status, errorText);
@@ -462,9 +412,7 @@ async function handleDeleteProject(projectId: number, projectName: string): Prom
       return;
     }
 
-    // Refresh the project list to remove the deleted project
     await refreshProjects();
-    console.log(`Project ${projectId} "${projectName}" deleted successfully`);
   } catch (error) {
     console.error("Delete project error:", error);
     alert("Failed to delete project. Please try again.");

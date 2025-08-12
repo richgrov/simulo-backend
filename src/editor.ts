@@ -18,7 +18,6 @@ const uploadedImages = new Array<File>();
 let projectId: string;
 let websocket: RetryWebsocket | undefined;
 
-// Helper functions for prompt persistence
 function getPromptStorageKey(): string {
   return `simulo_prompt_${projectId}`;
 }
@@ -49,7 +48,6 @@ function loadSavedPrompt(): void {
 
 function clearOldPromptData(): void {
   try {
-    // Clear prompts from other projects to avoid interference
     const currentKey = getPromptStorageKey();
     const keysToRemove: string[] = [];
     
@@ -79,17 +77,14 @@ export function init(project: string) {
 
   loadSavedPrompt();
 
-  // auto-save functionality
   promptInput.addEventListener("input", () => {
     savePromptToStorage();
   });
 
-  // Save prompt when page is about to unload
   window.addEventListener("beforeunload", () => {
     savePromptToStorage();
   });
 
-  // Save prompt when page loses focus
   window.addEventListener("blur", () => {
     savePromptToStorage();
   });
