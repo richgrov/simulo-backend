@@ -18,11 +18,81 @@ const uploadedImages = new Array<File>();
 let projectId: string;
 let websocket: RetryWebsocket | undefined;
 
+// Helper functions for prompt persistence
+function getPromptStorageKey(): string {
+  return `simulo_prompt_${projectId}`;
+}
+
+function savePromptToStorage(): void {
+  try {
+    const key = getPromptStorageKey();
+    const promptText = promptInput.value;
+    localStorage.setItem(key, promptText);
+    console.log("Prompt saved to localStorage:", promptText);
+  } catch (error) {
+    console.warn("Failed to save prompt to localStorage:", error);
+  }
+}
+
+function loadSavedPrompt(): void {
+  try {
+    const key = getPromptStorageKey();
+    const savedPrompt = localStorage.getItem(key);
+    if (savedPrompt && savedPrompt.trim() !== "") {
+      promptInput.value = savedPrompt;
+      console.log("Prompt loaded from localStorage:", savedPrompt);
+    }
+  } catch (error) {
+    console.warn("Failed to load prompt from localStorage:", error);
+  }
+}
+
+function clearOldPromptData(): void {
+  try {
+    // Clear prompts from other projects to avoid interference
+    const currentKey = getPromptStorageKey();
+    const keysToRemove: string[] = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('simulo_prompt_') && key !== currentKey) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      console.log("Cleared old prompt data:", key);
+    });
+  } catch (error) {
+    console.warn("Failed to clear old prompt data:", error);
+  }
+}
+
 export function init(project: string) {
   projectId = project;
   editorControls.style["display"] = "flex";
   const scene = new EditorScene(canvas.renderer);
   canvas.setScene(scene);
+
+  clearOldPromptData();
+
+  loadSavedPrompt();
+
+  // auto-save functionality
+  promptInput.addEventListener("input", () => {
+    savePromptToStorage();
+  });
+
+  // Save prompt when page is about to unload
+  window.addEventListener("beforeunload", () => {
+    savePromptToStorage();
+  });
+
+  // Save prompt when page loses focus
+  window.addEventListener("blur", () => {
+    savePromptToStorage();
+  });
 
   if (!websocket) {
     websocket = new RetryWebsocket(
@@ -73,6 +143,8 @@ export function init(project: string) {
             const sceneData = JSON.parse(parts[1]);
             promptInput.value = sceneData[0].prompt;
             scene.initSceneData(sceneData);
+            // Save the updated prompt to localStorage
+            savePromptToStorage();
           } else if (parts[0] === "machineonline") {
             scene.setMachineOnline(parseInt(parts[1], 10), parts[2] === "true");
           }

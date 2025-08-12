@@ -73,8 +73,10 @@ func main() {
 	http.HandleFunc("/project/", server.handleProjectAgent)
 	http.HandleFunc("/projects", server.handleProjects)
 	http.HandleFunc("/locations", server.handleLocations)
+	http.HandleFunc("/projects/delete", server.handleProjectDelete)
 	http.HandleFunc("/projects/create", server.createProject)
 	http.HandleFunc("/projects/rename", server.renameProject)
+	http.HandleFunc("/projects", server.handleProjects)
 	http.HandleFunc("/", server.handleWebSocket)
 
 	port := os.Getenv("PORT")
@@ -93,7 +95,7 @@ func (s *Server) setCORSHeaders(w http.ResponseWriter) {
 	}
 	w.Header().Set("Access-Control-Allow-Origin", cors)
 	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 }
 
 func (s *Server) handleProjectAgent(w http.ResponseWriter, r *http.Request) {
@@ -400,6 +402,59 @@ func (s *Server) renameProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
+func (s *Server) handleProjectDelete(w http.ResponseWriter, r *http.Request) {
+	s.setCORSHeaders(w)
+
+	log.Printf("Delete request received: %s %s", r.Method, r.URL.Path)
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != "DELETE" {
+		log.Printf("Method not allowed: %s", r.Method)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract project ID from query parameter
+	projectID := r.URL.Query().Get("id")
+	log.Printf("Project ID from query: %s", projectID)
+
+	if projectID == "" {
+		log.Printf("No project ID in query")
+		http.Error(w, "Project ID required", http.StatusBadRequest)
+		return
+	}
+
+	// Authorize user
+	user, err := s.authorize(r)
+	if err != nil {
+		log.Printf("Authorization failed: %v", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	log.Printf("User authorized: %s", user.ID)
+
+	// Delete the project
+	err = s.db.DeleteProject(projectID, user.ID)
+	if err != nil {
+		log.Printf("Delete project failed: %v", err)
+		if err.Error() == "project not found or not owned by user" {
+			http.Error(w, "Project not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("Failed to delete project: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Project %s deleted successfully", projectID)
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }

@@ -20,7 +20,7 @@ type User struct {
 }
 
 type Project struct {
-	ID   string `json:"id"`
+	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -211,7 +211,7 @@ func (d *DatabaseClient) GetUserLocations(userID string) ([]Location, error) {
 	return locations, nil
 }
 func (d *DatabaseClient) CreateProject(userID string) (*Project, error) {
-	query := "INSERT INTO projects (id, name, owner, scene) VALUES (gen_random_uuid(), $1, $2, $3) RETURNING id, name"
+	query := "INSERT INTO projects (name, owner, scene) VALUES ($1, $2, $3) RETURNING id, name"
 
 	var project Project
 	err := d.db.QueryRow(query, "Unnamed Project", userID, "[]").Scan(&project.ID, &project.Name)
@@ -228,6 +228,26 @@ func (d *DatabaseClient) RenameProject(projectID, userID, newName string) error 
 	result, err := d.db.Exec(query, newName, projectID, userID)
 	if err != nil {
 		return fmt.Errorf("failed to rename project: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("project not found or not owned by user")
+	}
+
+	return nil
+}
+
+func (d *DatabaseClient) DeleteProject(projectID, userID string) error {
+	query := "DELETE FROM projects WHERE id = $1 AND owner = $2"
+
+	result, err := d.db.Exec(query, projectID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
