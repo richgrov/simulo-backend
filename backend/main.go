@@ -76,7 +76,6 @@ func main() {
 	http.HandleFunc("/projects/delete", server.handleProjectDelete)
 	http.HandleFunc("/projects/create", server.createProject)
 	http.HandleFunc("/projects/rename", server.renameProject)
-	http.HandleFunc("/projects", server.handleProjects)
 	http.HandleFunc("/", server.handleWebSocket)
 
 	port := os.Getenv("PORT")
