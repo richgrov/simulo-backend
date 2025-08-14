@@ -199,7 +199,7 @@ func (d *DatabaseClient) GetUserLocations(userID string) ([]Location, error) {
 	}
 	defer rows.Close()
 
-	var locations []Location
+	locations := make([]Location, 0)
 	for rows.Next() {
 		var location Location
 		if err := rows.Scan(&location.Id, &location.Owner, &location.Name, &location.Latitude, &location.Longitude); err != nil {
