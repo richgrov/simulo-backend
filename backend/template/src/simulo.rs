@@ -1,10 +1,44 @@
-pub struct GameObject(u32);
+use std::ffi::c_void;
+use simulo_declare_type::ObjectClass;
+
+pub trait ObjectClassed {
+    const TYPE_ID: u32;
+}
+
+pub type Handle<T> = Box<T>;
+
+#[ObjectClass]
+pub struct BaseObject(u32);
+
+impl Object for BaseObject {
+    fn base(&self) -> &BaseObject {
+        self
+    }
+}
+
+pub trait Object {
+    fn base(&self) -> &BaseObject;
+    fn update(&mut self, _delta: f32) {}
+}
 
 #[allow(dead_code)]
-impl GameObject {
-    pub fn new(position: glam::Vec2, material: &Material) -> Self {
+impl BaseObject {
+    pub fn new<T: Object + ObjectClassed + 'static>(position: glam::Vec2, material: &Material, f: impl FnOnce(BaseObject) -> T) -> Handle<T> {
         let id = unsafe { simulo_create_object(position.x, position.y, material.0) };
-        GameObject(id)
+        let obj = BaseObject(id);
+        let node = f(obj);
+        let b = Handle::new(node);
+        let ptr: *const T = &*b;
+
+        let type_id = T::TYPE_ID;
+        unsafe { simulo_set_object_ptr(id, type_id, ptr as *mut T as *mut c_void); }
+        b
+    }
+
+    pub fn add_child(&self, child: Handle<impl Object>) {
+        let child_id = child.base().0;
+        _ = Handle::into_raw(child);
+        unsafe { simulo_add_object_child(self.0, child_id); }
     }
 
     pub fn position(&self) -> glam::Vec2 {
@@ -27,7 +61,7 @@ impl GameObject {
         }
     }
 
-    pub fn get_scale(&self) -> glam::Vec2 {
+    pub fn scale(&self) -> glam::Vec2 {
         unsafe {
             glam::Vec2::new(
                 simulo_get_object_scale_x(self.0),
@@ -50,8 +84,14 @@ impl GameObject {
 
     pub fn delete(&self) {
         unsafe {
-            simulo_delete_object(self.0);
+            simulo_remove_object(self.0);
         }
+    }
+}
+
+impl std::ops::Drop for BaseObject {
+    fn drop(&mut self) {
+        unsafe { simulo_drop_object(self.0); }
     }
 }
 
@@ -60,6 +100,12 @@ pub struct Material(u32);
 impl Material {
     pub fn new(image_id: u32, r: f32, g: f32, b: f32) -> Self {
         unsafe { Material(simulo_create_material(image_id, r, g, b)) }
+    }
+
+    pub fn delete(&self) {
+        unsafe {
+            simulo_delete_material(self.0);
+        }
     }
 }
 
@@ -157,18 +203,11 @@ static mut POSE_DATA: PoseData = [0.0; 17 * 2];
 
 #[unsafe(no_mangle)]
 #[allow(static_mut_refs)]
-pub extern "C" fn init(_root: u32) {
-    let g = Box::new(crate::game::Game::new());
+pub extern "C" fn init() {
+    let g = crate::game::Game::new();
     unsafe {
-        GAME = Box::leak(g);
+        GAME = Handle::leak(g);
         simulo_set_pose_buffer(POSE_DATA.as_mut_ptr());
-    }
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn update(delta: f32) {
-    unsafe {
-        (*GAME).update(delta);
     }
 }
 
@@ -186,6 +225,10 @@ pub extern "C" fn pose(id: u32, alive: bool) {
 unsafe extern "C" {
     fn simulo_set_pose_buffer(data: *mut f32);
     fn simulo_create_object(x: f32, y: f32, material: u32) -> u32;
+    fn simulo_set_object_ptr(id: u32, type_hash: u32, ptr: *mut c_void);
+
+    fn simulo_add_object_child(parent: u32, child: u32);
+
     fn simulo_set_object_position(id: u32, x: f32, y: f32);
     fn simulo_set_object_rotation(id: u32, rotation: f32);
     fn simulo_set_object_scale(id: u32, x: f32, y: f32);
@@ -194,10 +237,13 @@ unsafe extern "C" {
     fn simulo_get_object_rotation(id: u32) -> f32;
     fn simulo_get_object_scale_x(id: u32) -> f32;
     fn simulo_get_object_scale_y(id: u32) -> f32;
+
     fn simulo_set_object_material(id: u32, material: u32);
-    fn simulo_delete_object(id: u32);
+    fn simulo_remove_object(id: u32);
+    fn simulo_drop_object(id: u32);
     fn simulo_random() -> f32;
     fn simulo_window_width() -> i32;
     fn simulo_window_height() -> i32;
     fn simulo_create_material(image: u32, r: f32, g: f32, b: f32) -> u32;
+    fn simulo_delete_material(id: u32);
 }

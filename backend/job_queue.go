@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 )
 
@@ -93,7 +92,6 @@ func (jq *JobQueue) process() {
 }
 
 func (jq *JobQueue) runJob(code string) (*JobResult, error) {
-	// Generate random ID starting with 'a'
 	id := "a" + generateRandomHex(16)
 	fmt.Printf("Running job %s\n", id)
 
@@ -102,62 +100,24 @@ func (jq *JobQueue) runJob(code string) (*JobResult, error) {
 		return nil, fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	// Initialize cargo project
-	cmd := exec.Command("cargo", "init", "--lib")
-	cmd.Dir = dir
-	if err := cmd.Run(); err != nil {
-		os.RemoveAll(dir)
-		return nil, fmt.Errorf("failed to init cargo project: %v", err)
+	if err := copyDir(TEMPLATE_DIR, dir); err != nil {
+		return nil, fmt.Errorf("failed to copy templates: %v", err)
 	}
 
-	// Update Cargo.toml
-	cargoToml := `[package]
-name = "` + id + `"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-glam = "0.30.4"
-
-[lib]
-crate-type = ["cdylib"]
-`
-	if err := os.WriteFile(filepath.Join(dir, "Cargo.toml"), []byte(cargoToml), 0644); err != nil {
-		os.RemoveAll(dir)
-		return nil, fmt.Errorf("failed to write Cargo.toml: %v", err)
-	}
-
-	// Copy template files
 	srcDir := filepath.Join(dir, "src")
 
-	if err := copyFile(filepath.Join(TEMPLATE_DIR, "lib.rs"), filepath.Join(srcDir, "lib.rs")); err != nil {
-		os.RemoveAll(dir)
-		return nil, fmt.Errorf("failed to copy lib.rs: %v", err)
-	}
-
-	if err := copyFile(filepath.Join(TEMPLATE_DIR, "simulo.rs"), filepath.Join(srcDir, "simulo.rs")); err != nil {
-		os.RemoveAll(dir)
-		return nil, fmt.Errorf("failed to copy simulo.rs: %v", err)
-	}
-
-	// Write game code
 	if err := os.WriteFile(filepath.Join(srcDir, "game.rs"), []byte(code), 0644); err != nil {
-		os.RemoveAll(dir)
 		return nil, fmt.Errorf("failed to write game.rs: %v", err)
 	}
 
-	// Build the project
-	cmd = exec.Command("cargo", "build", "--target", "wasm32-unknown-unknown", "--release")
+	cmd := exec.Command("cargo", "build", "--target", "wasm32-unknown-unknown", "--release")
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		os.RemoveAll(dir)
 		return &JobResult{Status: StatusCompileError, Result: string(output)}, nil
 	}
 
-	// Construct WASM path
-	crateName := strings.ReplaceAll(id, "-", "_")
-	wasmPath := filepath.Join(dir, "target", "wasm32-unknown-unknown", "release", crateName+".wasm")
+	wasmPath := filepath.Join(dir, "target", "wasm32-unknown-unknown", "release", "program.wasm")
 
 	fmt.Printf("Job %s completed\n", id)
 	return &JobResult{Status: StatusSuccess, Result: JobSuccess{ID: id, WasmPath: wasmPath}}, nil
@@ -191,4 +151,30 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(destFile, sourceFile)
 	return err
+}
+
+func copyDir(src, dst string) error {
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+		if entry.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := copyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

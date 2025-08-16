@@ -16,48 +16,67 @@ Some APIs use glam for vector and matrix operations. Access the components of a 
 //! Documentation for Simulo: The game engine of the real world. All APIs are available in the
 //! global namespace.
 //!
-//! A struct ` + "`" + `Game` + "`" + ` must be declared with the following functions:
+//! All behaviors are programmed on top of objects in the scene graph. Declare an object like so:
+//!
 //! ` + "```" + `rust
-//! pub struct Game {
-//!     // ...
+//! #[ObjectClass]
+//! pub struct MyObject {
+//!     base: BaseObject,
 //! }
 //!
-//! impl Game {
-//!     pub fn new() -> Self {
-//!         // ...
-//!     }
-//!
-//!     // ` + "`" + `delta` + "`" + ` is in seconds.
-//!     pub fn update(&mut self, delta: f32) {
-//!         // ...
+//! impl MyObject {
+//!     pub fn new() -> Handle<Self> {
+//!         BaseObject::new(
+//!             Vec2::new(...), // position
+//!             &Material::new(...), // material
+//!             |base| MyObject { base } // construct your inherited object from the base
+//!         )
 //!     }
 //!
 //!     // Called when a pose detection comes within view, moves, or leaves view. When a pose comes
 //!     // within view, it is assigned an ID that's reused for future updates like moving or
 //!     // leaving view. If the pose data is None, the pose has left view.
+//!     // This is only called on the root object.
 //!     pub fn on_pose_update(&mut self, id: u32, pose: Option<&Pose>) {
 //!         // ...
 //!     }
 //! }
+//! 
+//! impl Object for MyObject {
+//!     fn base(&self) -> &BaseObject {
+//!         &self.base
+//!     }
+//!
+//!     // Called every frame. This method is optional.
+//!     // ` + "`" + `delta` + "`" + ` is in seconds.
+//!     pub fn update(&mut self, delta: f32) {
+//!         // ...
+//!     }
+//! }
 //! ` + "```" + `
+//!
+//! All games must declare a root object called ` + "`" + `Game` + "`" + ` that has the ` + "`" + `on_pose_update` + "`" + ` method, even if not used.
 //!
 //! Coordinate system:
 //! +X = left
 //! +Y = up
 //! +Z = forward
 
-/// A lightweight handle to an object in the scene. If dropped, the object will still exist. If
-/// deleted with ` + "`" + `GameObject::delete()` + "`" + `, the object will be removed from the scene and all copies
-/// of this object will be invalid.
-///
+/// A lightweight handle to an object in the scene.
 /// The position of the object is anchored at the top-left corner.
-pub struct GameObject(/* stub */);
+#[ObjectClass]
+pub struct BaseObject(/* stub */);
 
-impl GameObject {
+/// Holds references to game object classes. With the exception of a class holding its base object,
+/// all game objects are accessed as Handle<T>. Handle implements Deref<Target = T>, so you can
+/// call methods on the object directly.
+pub struct Handle<T>(/* stub */);
+
+impl BaseObject {
     /// Creates and spawns a new object with the given viewport position and material. It starts at
     // a 1x1 pixel scale, so you must likely want to rescale it to something bigger with
     // ` + "`" + `GameObject::set_scale()` + "`" + `.
-    pub fn new(position: glam::Vec2, material: &Material) -> Self { /* stub */ }
+    pub fn new<T: Object>(position: glam::Vec2, material: &Material, ctor: impl FnOnce(BaseObject) -> T) -> Handle<T> { /* stub */ }
 
     pub fn position(&self) -> glam::Vec2 { /* stub */ }
 
@@ -75,10 +94,12 @@ impl GameObject {
 
     pub fn set_material(&self, material: &Material) { /* stub */ }
 
-    /// Deletes the object from the scene. If this object handle was cloned, all other instances are
+    /// Deletes the object from its parent. If this object handle was cloned, all other instances are
     /// also invalid. They may now point to nothing, or a different object.
     pub fn delete(&self) { /* stub */ }
 }
+
+impl Object for BaseObject { /* stub */ }
 
 /// A material changes the color of an object.
 pub struct Material(/* stub */);
