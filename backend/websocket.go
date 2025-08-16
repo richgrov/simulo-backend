@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -377,12 +378,16 @@ func (ws *WebSocketHandler) verifySignature(id, publicKeyPem string, signature [
 		return false
 	}
 
-	_, err := x509.ParsePKIXPublicKey(block.Bytes)
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
 		return false
 	}
 
-	// This is a simplified verification - implement proper signature verification
-	// based on your specific key type and signature algorithm
-	return true
+	ed25519PubKey, ok := publicKey.(ed25519.PublicKey)
+	if !ok {
+		return false
+	}
+
+	message := []byte(id)
+	return ed25519.Verify(ed25519PubKey, message, signature)
 }
