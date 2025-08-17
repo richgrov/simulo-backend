@@ -180,7 +180,7 @@ Retry:
 
 		log.Printf("AI generated code: %s", code)
 
-		compileResult := s.compileQueue.Enqueue("use crate::simulo::*;use simulo_declare_type::ObjectClass;\n" + code)
+		compileResult := s.compileQueue.Enqueue("use crate::simulo::*;use simulo_declare_type::ObjectClass;use glam::*;\n" + code)
 		switch compileResult.Status {
 		case StatusSuccess:
 			result = compileResult.Result.(JobSuccess)
