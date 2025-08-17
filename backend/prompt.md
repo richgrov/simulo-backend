@@ -12,7 +12,7 @@ Some APIs use glam for vector and matrix operations. Access the components of a 
 //! ```rust
 //! #[ObjectClass]
 //! pub struct MyObject {
-//!     base: BaseObject,
+//!     parent: BaseObject,
 //! }
 //!
 //! impl MyObject {
@@ -20,7 +20,7 @@ Some APIs use glam for vector and matrix operations. Access the components of a 
 //!         let material = Material::new(...); // good practice to create materials at the beginning of the program
 //!
 //!         MyObject {
-//!             base: BaseObject::new(
+//!             parent: BaseObject::new(
 //!                 Vec2::new(...), // position
 //!                 &material,
 //!             ),
@@ -38,13 +38,17 @@ Some APIs use glam for vector and matrix operations. Access the components of a 
 //!
 //! impl Object for MyObject {
 //!     fn base(&self) -> &BaseObject {
-//!         &self.base
+//!         &self.parent
 //!     }
 //!
 //!     // Don't manually call this; it's automatically run every frame. This method is optional.
 //!     // `delta` is in seconds.
 //!     fn update(&mut self, delta: f32) {
 //!         // ...
+//!     }
+//!
+//!     fn recalculate_transform(&self) -> Mat4 {
+//!         self.parent.recalculate_transform()
 //!     }
 //! }
 //! ```
@@ -62,7 +66,12 @@ Some APIs use glam for vector and matrix operations. Access the components of a 
 /// All objects inherit BaseObject, which consists of a position, scale, rotation, and material.
 /// The position of the object is anchored at the top-left corner.
 #[ObjectClass]
-pub struct BaseObject(/* stub */);
+pub struct BaseObject {
+    pub position: Vec2,
+    pub rotation: f32, // radians
+    pub scale: Vec2,
+    // (private fields)
+};
 
 impl BaseObject {
     /// Creates a new object that, when added to the scene tree, has the given position and
@@ -70,25 +79,12 @@ impl BaseObject {
     /// something bigger with `GameObject::set_scale()`.
     pub fn new(position: glam::Vec2, material: &Material) -> BaseObject { /* stub */ }
 
-    pub fn position(&self) -> glam::Vec2 { /* stub */ }
-
-    pub fn set_position(&self, pos: glam::Vec2) { /* stub */ }
-
-    /// Gets the rotation of the object in radians.
-    pub fn rotation(&self) -> f32 { /* stub */ }
-
-    /// Sets the rotation of the object in radians.
-    pub fn set_rotation(&self, rotation: f32) { /* stub */ }
-
-    pub fn scale(&self) -> glam::Vec2 { /* stub */ }
-
-    pub fn set_scale(&self, scale: glam::Vec2) { /* stub */ }
-
-    pub fn set_material(&self, material: &Material) { /* stub */ }
-
     /// Takes ownership of the node. If this parent node is part of the main scene graph, the child
     /// node will now have its update() method called.
     pub fn add_child<T: Object>(&mut self, child: T) { /* stub */ }
+
+    /// After position, rotation, or scale are modified, you must call this method.
+    pub fn mark_transform_outdated(&self) { /* stub */ }
 
     /// Deletes the object from its parent. If this object handle was cloned, all other instances are
     /// also invalid. They may now point to nothing, or a different object.
