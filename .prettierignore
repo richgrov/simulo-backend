@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+bun.lock
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# OS and IDE files  
+.DS_Store
+.vscode/
+.idea/
+
+# Backend files
+backend/
+*.go
+
+# Binary and asset files
+*.otf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Generated files
+vite-env.d.ts
