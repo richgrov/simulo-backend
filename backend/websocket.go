@@ -89,6 +89,10 @@ func NewWebSocketHandler(db *DatabaseClient, supabaseCli *supabase.Client, s3Cli
 func (ws *WebSocketHandler) Handle() {
 	var data WebSocketData
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go ws.pingRoutine(ctx)
+
 	for {
 		messageType, message, err := ws.conn.ReadMessage()
 		if err != nil {
@@ -370,6 +374,23 @@ func (ws *WebSocketHandler) sendMachineProject(machineID int) {
 	}
 
 	ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2MInitAssets(urls[0], hashes[0], urls[1:], hashes[1:]))
+}
+
+func (ws *WebSocketHandler) pingRoutine(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := ws.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("WebSocket ping error: %v", err)
+				return
+			}
+		}
+	}
 }
 
 func (ws *WebSocketHandler) verifySignature(id, publicKeyPem string, signature []byte) bool {
