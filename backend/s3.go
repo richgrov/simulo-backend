@@ -43,8 +43,14 @@ func (s *S3Client) UploadFile(name, filePath string) error {
 }
 
 func (s *S3Client) UploadBuffer(name string, data []byte) error {
+	// Determine content type based on file extension
+	contentType := "application/octet-stream"
+	if len(name) > 4 && name[len(name)-4:] == ".png" {
+		contentType = "image/png"
+	}
+
 	_, err := s.client.PutObject(context.Background(), s.bucket, name, bytes.NewReader(data), int64(len(data)), minio.PutObjectOptions{
-		ContentType: "application/octet-stream",
+		ContentType: contentType,
 		Checksum:    minio.ChecksumSHA256,
 	})
 

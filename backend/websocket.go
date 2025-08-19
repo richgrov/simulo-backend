@@ -246,14 +246,22 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 		}
 
 		for _, data := range packet.Uploads {
+			// Validate and convert image to PNG
+			pngData, err := validateAndConvertImage(data)
+			if err != nil {
+				log.Printf("Image validation/conversion failed: %v", err)
+				// Skip invalid images instead of failing the entire request
+				continue
+			}
+
 			projectData, err := ws.db.GetProject(userData.ProjectID)
 			if err != nil {
 				ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4016, "project not found"))
 				return
 			}
 
-			// Generate new UUID for the file
-			fileID := generateRandomHex(16)
+			// Generate new UUID for the file (with .png extension)
+			fileID := generateRandomHex(16) + ".png"
 
 			// Parse and update scene
 			var scene []map[string]interface{}
@@ -267,8 +275,8 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 				}
 			}
 
-			// Upload to S3
-			if err := ws.s3Client.UploadBuffer(fileID, data); err != nil {
+			// Upload PNG to S3
+			if err := ws.s3Client.UploadBuffer(fileID, pngData); err != nil {
 				log.Printf("S3 upload failed: %v", err)
 				continue
 			}

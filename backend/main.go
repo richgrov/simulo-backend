@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -157,6 +158,51 @@ func (s *Server) handleProjectAgent(w http.ResponseWriter, r *http.Request) {
 
 	if len(sceneData) > 0 {
 		sceneData[0]["prompt"] = prompt
+	}
+
+	// Process uploaded images
+	if files, ok := r.MultipartForm.File["images"]; ok {
+		for _, fileHeader := range files {
+			file, err := fileHeader.Open()
+			if err != nil {
+				log.Printf("Failed to open uploaded file: %v", err)
+				continue
+			}
+			defer file.Close()
+
+			// Read file data
+			fileData, err := io.ReadAll(file)
+			if err != nil {
+				log.Printf("Failed to read uploaded file: %v", err)
+				continue
+			}
+
+			// Validate and convert image to PNG
+			pngData, err := validateAndConvertImage(fileData)
+			if err != nil {
+				log.Printf("Image validation/conversion failed for %s: %v", fileHeader.Filename, err)
+				// Skip invalid images instead of failing the entire request
+				continue
+			}
+
+			// Generate new UUID for the file (with .png extension)
+			fileID := generateRandomHex(16) + ".png"
+
+			// Upload PNG to S3
+			if err := s.s3Client.UploadBuffer(fileID, pngData); err != nil {
+				log.Printf("S3 upload failed: %v", err)
+				continue
+			}
+
+			// Add to scene data
+			if len(sceneData) > 0 {
+				if promptImages, ok := sceneData[0]["promptImages"].([]interface{}); ok {
+					sceneData[0]["promptImages"] = append(promptImages, fileID)
+				} else {
+					sceneData[0]["promptImages"] = []interface{}{fileID}
+				}
+			}
+		}
 	}
 
 	updatedScene, _ := json.Marshal(sceneData)
