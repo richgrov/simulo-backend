@@ -13,23 +13,18 @@ interface Project {
 }
 
 export async function init() {
-  const projects = await fetchProjects();
+  refreshProjects();
   const locations = await fetchLocations();
 
   const locationsScene = new LocationsScene(canvas.renderer);
   locationsScene.addLocations(locations);
   canvas.setScene(locationsScene);
-
-  projectList.innerHTML = "";
-}
-export async function refreshProjectList() {
-  await refreshProjects();
 }
 
 async function refreshProjects() {
   try {
     const projects = await fetchProjects();
-    
+
     projectList.innerHTML = "";
 
     const createProjectCard = html`<div
@@ -66,7 +61,7 @@ async function refreshProjects() {
       if (id == null || name == null) {
         continue;
       }
-      
+
       const status = "NOT DEPLOYED";
       const color = "gray";
 
@@ -135,12 +130,14 @@ async function refreshProjects() {
     addProjectMenuEventListeners();
 
     if (projects.length === 0) {
-      const noProjectsMsg = html`<div style="
+      const noProjectsMsg = html`<div
+        style="
         text-align: center; 
         color: #c0c9cf; 
         margin-top: 40px; 
         font-style: italic;
-      ">
+      "
+      >
         No projects yet. Click "Create New Project" to get started!
       </div>`;
       projectList.appendChild(noProjectsMsg);
@@ -199,13 +196,16 @@ async function handleCreateProject() {
       throw sessionError;
     }
 
-    const response = await fetch(import.meta.env.VITE_BACKEND + "/projects/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: sessionData.session!.access_token,
+    const response = await fetch(
+      import.meta.env.VITE_BACKEND + "/projects/create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: sessionData.session!.access_token,
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -214,7 +214,7 @@ async function handleCreateProject() {
     }
 
     const newProject = await response.json();
-    
+
     window.location.href = `?${newProject.id}`;
   } catch (error) {
     console.error("Create project error:", error);
@@ -223,27 +223,37 @@ async function handleCreateProject() {
 }
 
 function addProjectMenuEventListeners(): void {
-  const menuButtons = document.querySelectorAll('.project-menu-btn');
-  menuButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
+  const menuButtons = document.querySelectorAll(".project-menu-btn");
+  menuButtons.forEach((button) => {
+    button.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const projectId = button.getAttribute('data-project-id');
-      const projectName = button.getAttribute('data-project-name');
+      const projectId = button.getAttribute("data-project-id");
+      const projectName = button.getAttribute("data-project-name");
       if (projectId && projectName) {
-        showProjectMenu(parseInt(projectId), projectName, button as HTMLElement);
+        showProjectMenu(
+          parseInt(projectId),
+          projectName,
+          button as HTMLElement,
+        );
       }
     });
   });
 }
 
-function showProjectMenu(projectId: number, projectName: string, buttonElement: HTMLElement): void {
-  const existingMenu = document.querySelector('.project-menu-dropdown');
+function showProjectMenu(
+  projectId: number,
+  projectName: string,
+  buttonElement: HTMLElement,
+): void {
+  const existingMenu = document.querySelector(".project-menu-dropdown");
   if (existingMenu) {
     existingMenu.remove();
   }
 
-  const menu = html`<div class="project-menu-dropdown" style="
+  const menu = html`<div
+    class="project-menu-dropdown"
+    style="
     position: absolute;
     top: 100%;
     right: 0;
@@ -254,8 +264,13 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
     z-index: 1000;
     min-width: 120px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  ">
-    <button class="menu-option rename-option" data-project-id="${projectId}" data-project-name="${projectName}" style="
+  "
+  >
+    <button
+      class="menu-option rename-option"
+      data-project-id="${projectId}"
+      data-project-name="${projectName}"
+      style="
       display: block;
       width: 100%;
       padding: 8px 16px;
@@ -266,8 +281,17 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
       cursor: pointer;
       font-size: 14px;
       transition: background-color 0.2s;
-    " onmouseover="this.style.backgroundColor='#3a3a3a'" onmouseout="this.style.backgroundColor='transparent'">Rename</button>
-    <button class="menu-option delete-option" data-project-id="${projectId}" data-project-name="${projectName}" style="
+    "
+      onmouseover="this.style.backgroundColor='#3a3a3a'"
+      onmouseout="this.style.backgroundColor='transparent'"
+    >
+      Rename
+    </button>
+    <button
+      class="menu-option delete-option"
+      data-project-id="${projectId}"
+      data-project-name="${projectName}"
+      style="
       display: block;
       width: 100%;
       padding: 8px 16px;
@@ -278,69 +302,87 @@ function showProjectMenu(projectId: number, projectName: string, buttonElement: 
       cursor: pointer;
       font-size: 14px;
       transition: background-color 0.2s;
-    " onmouseover="this.style.backgroundColor='#3a3a3a'" onmouseout="this.style.backgroundColor='transparent'">Delete</button>
+    "
+      onmouseover="this.style.backgroundColor='#3a3a3a'"
+      onmouseout="this.style.backgroundColor='transparent'"
+    >
+      Delete
+    </button>
   </div>`;
 
-  const projectCard = buttonElement.closest('[style*="position: relative"]') as HTMLElement;
+  const projectCard = buttonElement.closest(
+    '[style*="position: relative"]',
+  ) as HTMLElement;
   if (projectCard) {
-    projectCard.style.position = 'relative';
+    projectCard.style.position = "relative";
     projectCard.appendChild(menu);
-    
-    const menuElement = projectCard.querySelector('.project-menu-dropdown') as HTMLElement;
+
+    const menuElement = projectCard.querySelector(
+      ".project-menu-dropdown",
+    ) as HTMLElement;
     if (menuElement) {
-      menuElement.style.position = 'absolute';
-      menuElement.style.top = '40px';
-      menuElement.style.right = '24px';
+      menuElement.style.position = "absolute";
+      menuElement.style.top = "40px";
+      menuElement.style.right = "24px";
     }
   }
 
+  const renameOption = menu.querySelector(".rename-option");
+  const deleteOption = menu.querySelector(".delete-option");
 
-  const renameOption = menu.querySelector('.rename-option');
-  const deleteOption = menu.querySelector('.delete-option');
-
-  renameOption?.addEventListener('click', () => {
+  renameOption?.addEventListener("click", () => {
     handleRenameProject(projectId, projectName);
     menu.remove();
   });
 
-  deleteOption?.addEventListener('click', () => {
+  deleteOption?.addEventListener("click", () => {
     handleDeleteProject(projectId, projectName);
     menu.remove();
   });
 
   setTimeout(() => {
-    document.addEventListener('click', function closeMenu(e) {
-      if (!menu.contains(e.target as Node) && !buttonElement.contains(e.target as Node)) {
+    document.addEventListener("click", function closeMenu(e) {
+      if (
+        !menu.contains(e.target as Node) &&
+        !buttonElement.contains(e.target as Node)
+      ) {
         menu.remove();
-        document.removeEventListener('click', closeMenu);
+        document.removeEventListener("click", closeMenu);
       }
     });
   }, 0);
 }
 
-async function handleRenameProject(projectId: number, currentName: string): Promise<void> {
-  const newName = prompt('Enter new project name:', currentName);
-  if (newName === null || newName.trim() === '') return;
-  
+async function handleRenameProject(
+  projectId: number,
+  currentName: string,
+): Promise<void> {
+  const newName = prompt("Enter new project name:", currentName);
+  if (newName === null || newName.trim() === "") return;
+
   if (newName === currentName) return;
 
   try {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
     if (sessionError) throw sessionError;
 
     const requestBody = {
       project_id: String(projectId),
-      name: newName.trim()
+      name: newName.trim(),
     };
 
-    const response = await fetch(import.meta.env.VITE_BACKEND + "/projects/rename", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: sessionData.session!.access_token,
+    const response = await fetch(
+      import.meta.env.VITE_BACKEND + "/projects/rename",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: sessionData.session!.access_token,
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    });
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -356,15 +398,22 @@ async function handleRenameProject(projectId: number, currentName: string): Prom
   }
 }
 
-async function handleDeleteProject(projectId: number, projectName: string): Promise<void> {
-  const confirmed = confirm(`Are you sure you want to delete "${projectName}"? This action cannot be undone.`);
+async function handleDeleteProject(
+  projectId: number,
+  projectName: string,
+): Promise<void> {
+  const confirmed = confirm(
+    `Are you sure you want to delete "${projectName}"? This action cannot be undone.`,
+  );
   if (!confirmed) return;
 
   try {
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
     if (sessionError) throw sessionError;
 
-    const deleteUrl = import.meta.env.VITE_BACKEND + `/projects/delete?id=${projectId}`;
+    const deleteUrl =
+      import.meta.env.VITE_BACKEND + `/projects/delete?id=${projectId}`;
 
     const response = await fetch(deleteUrl, {
       method: "DELETE",
