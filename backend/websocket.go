@@ -89,7 +89,6 @@ func NewWebSocketHandler(db *DatabaseClient, supabaseCli *supabase.Client, s3Cli
 func (ws *WebSocketHandler) Handle() {
 	var data WebSocketData
 
-	// Start ping routine to keep connection alive
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go ws.pingRoutine(ctx)
