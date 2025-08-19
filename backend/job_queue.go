@@ -42,7 +42,6 @@ type JobQueue struct {
 }
 
 func NewJobQueue() *JobQueue {
-	// Create work directory if it doesn't exist
 	if err := os.MkdirAll(WORK_DIR, 0755); err != nil {
 		panic(fmt.Sprintf("failed to create work directory: %v", err))
 	}
@@ -104,20 +103,29 @@ func (jq *JobQueue) runJob(code string) (*JobResult, error) {
 		return nil, fmt.Errorf("failed to copy templates: %v", err)
 	}
 
-	srcDir := filepath.Join(dir, "src")
-
-	if err := os.WriteFile(filepath.Join(srcDir, "game.rs"), []byte(code), 0644); err != nil {
-		return nil, fmt.Errorf("failed to write game.rs: %v", err)
+	fullCode := "#include \"simulo__pre.h\"\n" + code + "\n#include \"simulo__post.h\""
+	if err := os.WriteFile(filepath.Join(dir, "main.cpp"), []byte(fullCode), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write main.cpp: %v", err)
 	}
 
-	cmd := exec.Command("cargo", "build", "--target", "wasm32-unknown-unknown", "--release")
+	cmd := exec.Command(
+		"em++",
+		"main.cpp",
+		"--no-entry",
+		"-sEXPORTED_FUNCTIONS=[\"_simulo__start\", \"_simulo__update\", \"_simulo__recalculate_transform\", \"_simulo__pose\", \"_simulo__drop\"]",
+		"-sSTANDALONE_WASM=1",
+		"-Iglm",
+		"-o",
+		"main.wasm",
+	)
+
 	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return &JobResult{Status: StatusCompileError, Result: string(output)}, nil
 	}
 
-	wasmPath := filepath.Join(dir, "target", "wasm32-unknown-unknown", "release", "program.wasm")
+	wasmPath := filepath.Join(dir, "main.wasm")
 
 	fmt.Printf("Job %s completed\n", id)
 	return &JobResult{Status: StatusSuccess, Result: JobSuccess{ID: id, WasmPath: wasmPath}}, nil

@@ -72,16 +72,15 @@ func (c *CodeConversation) Generate(groqClient *GroqClient) (string, error) {
 		Content: text,
 	})
 
-	// Extract Rust code block
-	codeStart := strings.Index(text, "```rust")
+	codeStart := strings.Index(text, "```cpp")
 	if codeStart == -1 {
-		return "", fmt.Errorf("no rust code block found")
+		return "", fmt.Errorf("no cpp code block found")
 	}
-	codeStart += 7 // length of "```rust"
+	codeStart += len("```cpp")
 
 	codeEnd := strings.Index(text[codeStart:], "```")
 	if codeEnd == -1 {
-		return "", fmt.Errorf("incomplete rust code block")
+		return "", fmt.Errorf("incomplete cpp code block")
 	}
 
 	return text[codeStart : codeStart+codeEnd], nil
