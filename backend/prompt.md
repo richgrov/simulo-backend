@@ -11,12 +11,12 @@ Write a single, complete C++ code block. No other libraries except std, glm, and
 // ```cpp
 // class MyObject : public Object {
 // public:
-//     MyObject(const Material &material) : Object(material) {
+//     MyObject() {
 //         // init code here
 //     }
 //
 //     static std::unique_ptr<MyObject> create() {
-//         return std::make_unique<MyObject>(Material(kSolidTexture, 1.0f, 1.0f, 1.0f));
+//         return std::make_unique<MyObject>();
 //     }
 //
 //     void update(float delta) override {
@@ -33,7 +33,7 @@ Write a single, complete C++ code block. No other libraries except std, glm, and
 // ```
 //
 // All games must declare a root object called `Game` that has the `on_pose` method (even if not
-// used) and a static create() function that return a unique pointer. Add objects to the scene by
+// used) and a static create() function that returns a unique pointer. Add objects to the scene by
 // creating them and attaching them as children of other objects. **It is an anti-pattern to store
 // references to other nodes. Only do so if you actively need inter-node communication**
 //
@@ -42,12 +42,23 @@ Write a single, complete C++ code block. No other libraries except std, glm, and
 // +Y = up
 // +Z = forward
 
-// The base class of all objects. It comes with a position, rotation, scale, and material.
+// A material changes the appearance of an object. Materials are expensive to create and are in
+// limited supply, so unless with good reason not to, create them once at the beginning of the
+// program and reuse them.
+class Material {
+public:
+    Material(uint32_t image_id, float r, float g, float b);
+
+private:
+    // ...
+};
+
+// The base class of all objects. An empty, extensible container that comes with a position,
+// rotation, scale.
 // Objects are NOT copyable or movable.
-// The position of the object is anchored at the top-left corner of the mesh.
 class Object {
 public:
-    Object(const Material &material);
+    Object();
 
     Object(const Object &) = delete;
     Object &operator=(const Object &) = delete;
@@ -76,15 +87,19 @@ private:
     // ...
 };
 
-// A material changes the appearance of an object. Materials are expensive to create and are in
-// limited supply, so unless with good reason not to, create them once at the beginning of the
-// program and reuse them.
-class Material {
+// An object that displays a rectangular mesh. The mesh is colored/textured based on the `material`
+// constructor parameter.
+// The mesh displayed is anchored at the top-left corner.
+class RenderedObject : public Object {
 public:
-    Material(uint32_t image_id, float r, float g, float b);
+   RenderedObject(const Material &material);
+
+   virtual glm::mat4 recalculate_transform() override;
+
+   virtual ~RenderedObject();
 
 private:
-    // ...
+   // ...
 };
 
 // Utility for creating solid-colored objects. The image id of a 1x1 pixel image that, when
