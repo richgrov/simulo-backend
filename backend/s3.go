@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -62,6 +64,21 @@ func (s *S3Client) Delete(name string) error {
 	}
 
 	return nil
+}
+
+func (s *S3Client) ParallelDelete(names []string) {
+	wg := sync.WaitGroup{}
+	for _, name := range names {
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			if err := s.Delete(name); err != nil {
+				log.Printf("failed to delete object: %v", err)
+			}
+		}(name)
+	}
+
+	wg.Wait()
 }
 
 func (s *S3Client) PresignURL(name string, expiresIn time.Duration) (string, error) {

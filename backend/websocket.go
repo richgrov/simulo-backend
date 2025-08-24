@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/x509"
+	"database/sql"
 	"encoding/json"
 	"encoding/pem"
 	"log"
@@ -40,7 +41,7 @@ func (u *UserData) GetType() string {
 }
 
 type WebSocketHandler struct {
-	db             *DatabaseClient
+	server         *Server
 	supabaseCli    *supabase.Client
 	s3Client       *S3Client
 	conn           *websocket.Conn
@@ -76,9 +77,9 @@ func (om *OnlineMachines) Has(machineID int) bool {
 	return om.machines[machineID]
 }
 
-func NewWebSocketHandler(db *DatabaseClient, supabaseCli *supabase.Client, s3Client *S3Client, conn *websocket.Conn) *WebSocketHandler {
+func NewWebSocketHandler(server *Server, supabaseCli *supabase.Client, s3Client *S3Client, conn *websocket.Conn) *WebSocketHandler {
 	return &WebSocketHandler{
-		db:             db,
+		server:         server,
 		supabaseCli:    supabaseCli,
 		s3Client:       s3Client,
 		conn:           conn,
@@ -151,8 +152,15 @@ func (ws *WebSocketHandler) tryMachineAuth(message []byte) WebSocketData {
 		return nil
 	}
 
-	machine, err := ws.db.GetMachine(machineID)
+	query := "SELECT id, public_key FROM machines WHERE id = $1"
+
+	var machine Machine
+	err = ws.server.db.QueryRow(query, machineID).Scan(&machine.ID, &machine.PublicKey)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine not found"))
+			return nil
+		}
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine not found"))
 		return nil
 	}
@@ -183,7 +191,7 @@ func (ws *WebSocketHandler) tryUserAuth(message string) WebSocketData {
 		return nil
 	}
 
-	projectData, err := ws.db.GetProject(parts[1])
+	projectData, err := ws.server.GetProject(parts[1])
 	if err != nil {
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4009, "project not found"))
 		return nil
@@ -250,7 +258,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 		}
 
 		for _, data := range packet.Uploads {
-			projectData, err := ws.db.GetProject(userData.ProjectID)
+			projectData, err := ws.server.GetProject(userData.ProjectID)
 			if err != nil {
 				ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4016, "project not found"))
 				return
@@ -279,7 +287,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 
 			// Update database
 			updatedScene, _ := json.Marshal(scene)
-			ws.db.UpdateProjectScene(userData.ProjectID, string(updatedScene))
+			ws.server.UpdateProjectScene(userData.ProjectID, string(updatedScene))
 
 			// Send presigned URL back
 			url, err := ws.s3Client.PresignURL(fileID, 5*time.Minute)
@@ -298,7 +306,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 			return
 		}
 
-		projectData, err := ws.db.GetProject(userData.ProjectID)
+		projectData, err := ws.server.GetProject(userData.ProjectID)
 		if err != nil {
 			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4016, "project not found"))
 			return
@@ -319,7 +327,7 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 		}
 
 		updatedScene, _ := json.Marshal(scene)
-		ws.db.UpdateProjectScene(userData.ProjectID, string(updatedScene))
+		ws.server.UpdateProjectScene(userData.ProjectID, string(updatedScene))
 
 		ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2EDeletePromptImage(packet.Index))
 
@@ -329,8 +337,22 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 }
 
 func (ws *WebSocketHandler) sendMachineProject(machineID int) {
-	projectData, err := ws.db.GetMachineProject(machineID)
+	query := `
+		SELECT p.scene, d.compiled_object
+		FROM machines m
+		JOIN projects p ON p.id = m.project
+		JOIN deployments d ON d.project_id = p.id
+		WHERE m.id = $1
+		ORDER BY d.created_at DESC
+		LIMIT 1
+	`
+	var projectData MachineProject
+	err := ws.server.db.QueryRow(query, machineID).Scan(&projectData.Scene, &projectData.CompiledObject)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine project not found"))
+			return
+		}
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine project not found"))
 		return
 	}
