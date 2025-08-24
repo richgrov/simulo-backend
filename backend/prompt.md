@@ -3,7 +3,7 @@ Write a single, complete C++ code block. No other libraries except std, glm, and
 
 ````cpp
 // Documentation for Simulo: The game engine of the real world. These APIs will be #include'd for
-// you automatically.
+// you automatically. Using any simulo APIs in the global scope is not allowed.
 //
 // All game objects are nodes in the scene tree, a structure managed for you by the runtime.
 // Objects' behavior can be extended like so:
@@ -71,6 +71,8 @@ public:
     virtual void update(float delta);
 
     void add_child(std::unique_ptr<Object> object);
+
+    std::vector<Object *> children() const;
 
     void delete_from_parent();
 
