@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -541,6 +542,16 @@ func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {
 		}()
 
 		for name, clientHash := range newFiles {
+			if len(name) == 0 || len(name) > 255 {
+				http.Error(w, "file name has invalid length", http.StatusBadRequest)
+				return
+			}
+
+			if name != "main.wasm" && !strings.HasSuffix(name, ".png") {
+				http.Error(w, "only main.wasm and .png files can be uploaded", http.StatusBadRequest)
+				return
+			}
+
 			existingFile, ok := existingFiles[name]
 			needsUpload := !ok || existingFile.Hash != clientHash
 			if !needsUpload {
