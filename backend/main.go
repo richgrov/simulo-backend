@@ -32,16 +32,6 @@ type Project struct {
 	Name string `json:"name"`
 }
 
-type Machine struct {
-	ID        int    `json:"id"`
-	PublicKey string `json:"public_key"`
-}
-
-type MachineProject struct {
-	Scene          string `json:"scene"`
-	CompiledObject string `json:"compiled_object"`
-}
-
 type ProjectData struct {
 	Owner string `json:"owner"`
 	Scene string `json:"scene"`

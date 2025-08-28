@@ -152,21 +152,21 @@ func (ws *WebSocketHandler) tryMachineAuth(message []byte) WebSocketData {
 		return nil
 	}
 
-	query := "SELECT id, public_key FROM machines WHERE id = $1"
+	query := "SELECT public_key FROM machines WHERE id = $1"
 
-	var machine Machine
-	err = ws.server.db.QueryRow(query, machineID).Scan(&machine.ID, &machine.PublicKey)
+	var publicKey string
+	err = ws.server.db.QueryRow(query, machineID).Scan(&publicKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine not found"))
+			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4005, "not authorized"))
 			return nil
 		}
 		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine not found"))
 		return nil
 	}
 
-	if !ws.verifySignature(idString, machine.PublicKey, signature) {
-		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4005, "invalid signature"))
+	if !ws.verifySignature(idString, publicKey, signature) {
+		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4005, "not authorized"))
 		return nil
 	}
 
@@ -338,64 +338,58 @@ func (ws *WebSocketHandler) handleUserMessage(userData *UserData, message []byte
 
 func (ws *WebSocketHandler) sendMachineProject(machineID int) {
 	query := `
-		SELECT p.scene, d.compiled_object
-		FROM machines m
-		JOIN projects p ON p.id = m.project
-		JOIN deployments d ON d.project_id = p.id
-		WHERE m.id = $1
-		ORDER BY d.created_at DESC
-		LIMIT 1
+		SELECT object, name
+		FROM project_assets
+		WHERE project = (
+			SELECT project
+			FROM machines
+			WHERE id = $1
+		)
 	`
-	var projectData MachineProject
-	err := ws.server.db.QueryRow(query, machineID).Scan(&projectData.Scene, &projectData.CompiledObject)
+
+	rows, err := ws.server.db.Query(query, machineID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine project not found"))
+		log.Printf("Failed to get project data: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	var programUrl string
+	var programHash []byte
+	urls := []string{}
+	names := []string{}
+	hashes := [][]byte{}
+
+	for rows.Next() {
+		var object, name string
+		if err := rows.Scan(&object, &name); err != nil {
+			log.Printf("Failed to scan row: %v", err)
 			return
 		}
-		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(1011, "machine project not found"))
-		return
-	}
 
-	if projectData.CompiledObject == "" {
-		ws.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(4006, "no compiled object"))
-		return
-	}
-
-	var scene []map[string]interface{}
-	json.Unmarshal([]byte(projectData.Scene), &scene)
-
-	files := []string{projectData.CompiledObject}
-	if len(scene) > 0 {
-		if promptImages, ok := scene[0]["promptImages"].([]interface{}); ok {
-			for _, img := range promptImages {
-				if imgStr, ok := img.(string); ok {
-					files = append(files, imgStr)
-				}
-			}
-		}
-	}
-
-	urls := make([]string, len(files))
-	hashes := make([][]byte, len(files))
-
-	for i, fileID := range files {
-		url, err := ws.s3Client.PresignURL(fileID, 5*time.Minute)
+		url, err := ws.s3Client.PresignURL(object, 5*time.Minute)
 		if err != nil {
-			log.Printf("Failed to presign URL for %s: %v", fileID, err)
-			continue
+			log.Printf("Failed to presign URL for %s: %v", object, err)
+			return
 		}
-		urls[i] = url
 
-		hash, err := ws.s3Client.GetHash(fileID)
+		s3Hash, err := ws.s3Client.GetHash(object)
 		if err != nil {
-			log.Printf("Failed to get hash for %s: %v", fileID, err)
-			continue
+			log.Printf("Failed to get hash for %s: %v", object, err)
+			return
 		}
-		hashes[i] = hash
+
+		if name == "main.wasm" {
+			programUrl = url
+			programHash = s3Hash
+		} else {
+			urls = append(urls, url)
+			names = append(names, name)
+			hashes = append(hashes, s3Hash)
+		}
 	}
 
-	ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2MInitAssets(urls[0], hashes[0], urls[1:], hashes[1:]))
+	ws.conn.WriteMessage(websocket.BinaryMessage, protocol.S2MInitAssets(programUrl, programHash, names, urls, hashes))
 }
 
 func (ws *WebSocketHandler) pingRoutine(ctx context.Context) {
