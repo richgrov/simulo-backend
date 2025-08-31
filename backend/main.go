@@ -613,9 +613,9 @@ func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			query := "DELETE FROM project_assets WHERE name = $1 AND project = $2"
-			_, err := tx.Exec(query, name, projectIdInt)
-			if err != nil {
+			query := "DELETE FROM project_assets WHERE name = $1 AND project = $2 AND hash = $3"
+			_, err := tx.Exec(query, name, projectIdInt, existingFile.Hash)
+			if err != nil && err != sql.ErrNoRows {
 				log.Printf("failed to delete file: %v", err)
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
