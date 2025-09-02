@@ -135,6 +135,7 @@ func main() {
 
 	http.HandleFunc("/projects", server.handleProjects)
 	http.HandleFunc("/projects/{id}/assets", server.handleAssets)
+	http.HandleFunc("/machines/{id}/project", server.handleMachineProject)
 	http.HandleFunc("/", server.handleWebSocket)
 
 	port := os.Getenv("PORT")
@@ -639,6 +640,55 @@ func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {
 
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
+
+func (s *Server) handleMachineProject(w http.ResponseWriter, r *http.Request) {
+	s.setCORSHeaders(w)
+
+	machineId := r.PathValue("id")
+	machineIdInt, err := strconv.Atoi(machineId)
+	if err != nil {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	switch r.Method {
+	case "POST":
+		user, err := s.authorize(r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var request struct {
+			ProjectId string `json:"project_id"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
+		}
+
+		query := `
+			UPDATE machines SET project = $1
+			WHERE id = $2 AND EXISTS (
+				SELECT 1 FROM machines
+				JOIN locations ON machines.location = locations.id
+				WHERE locations.owner = $3 AND machines.id = $2
+			) AND EXISTS (
+				SELECT 1 FROM projects WHERE projects.id = $1 AND projects.owner = $3
+			)
+		`
+
+		if _, err = s.db.Exec(query, request.ProjectId, machineIdInt, user.ID); err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+	case "OPTIONS":
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 }
